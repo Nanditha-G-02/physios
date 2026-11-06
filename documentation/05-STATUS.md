@@ -1,0 +1,58 @@
+# PHYSIOS: verification status (2026-11-06)
+
+## Verified here
+
+| Area | How | Result |
+|---|---|---|
+| Gateway | `backend/tests/test_gateway.py`: config, path traversal, Range, task-info typing, motion confirmation (428, nothing reaches ROS), activity, unreachable/missing/timeout ROS errors, health, trainer proxy (pass-through errors, Origin, upload, X-Forwarded-Host), camera proxy, dataset files/export, SPA serving, `/ros` WebSocket pipe | 17 passed |
+| Hardware-test sequencer (ported) | `frontend/src/lib/hardwareTest.test.ts` against a simulated servo: correct direction and distance, other joints held, inverted joint caught in pre-hold with no motion samples, STOP ends publishing, missing joint refused | 4 passed (+4 helper tests) |
+| Type safety / build | `tsc --noEmit` (strict), `vite build` | clean |
+| Whole application in a browser | `tests/e2e/physios_e2e.py` against `devstack.py`: real PlanningService behind a rosbridge stand-in with a simulated recorder, real pam_trainer with a stub `lerobot-train`, real gateway; plus a simulated 3-DOF arm behind a second gateway | all 14 steps OK (below) |
+| Start/stop | `start_physios.sh` started the trainer and gateway, reported health with hints when ROS/camera were down, printed the URL; `stop_physios.sh` stopped both; non-loopback host refused | OK |
+| Existing back ends unchanged | pam_trainer tests 91 passed/1 skipped; planning tests 45 passed; `git diff 169333b` outside `physios/` = `.gitignore` only | OK |
+
+E2E steps:
+
+1. Dashboard: six live service checks OK.
+2. Header robot type set on physical_ai_server.
+3. Planning: create, generate, validate, apply fixes, approve, activate.
+4. Recording: plan-mode take through `/task/command`, review, accept.
+5. Datasets: library, video playback through the gateway, reject an episode, gzip export.
+6. Training: wizard, exact command, token start, finished.
+7. Optimisation: divergence diagnosed, trials planned, session created, control trial launched; a run without an environment is refused.
+8. Evaluation: robot trial recorded.
+9. Inference: compatibility and envelope from the recorded data, dry-run load. It fails because no torch is installed here, and the UI shows the worker log.
+10. Rollout: readiness, compatibility, editable envelope.
+11. Robots: zip upload, validation, register, 3D view.
+12. Robots: configuration, ROS checks (Stage 2), live joints, authorised one-joint test (Stage 3). 108 commands, none before Start; other joints held.
+13. Disconnected states.
+14. Settings and themes.
+
+## Not verified (needs the robot PC)
+
+* **Real ROS / real arm.** Every ROS interaction was exercised against stand-ins. That covers
+  the PlanningService code, the rosbridge protocol, topic names from the existing code, and a
+  simulated recorder and arm. On the SO-101 itself, check: recording start/stop, camera streams
+  via web_video_server, `/task/status` fields, and robot type switching.
+* **Real training and model loading.** `lerobot-train` was a stub. The rollout worker could not
+  load a model here (no torch/LeRobot), so a real dry run, a real host rollout and on-robot
+  inference are unverified through PHYSIOS. The worker and its safety filter are the unchanged
+  v4 code.
+* **`--with-ros`.** The `docker exec` commands follow the container's documented steps (router
+  first, then bringup) but were not run here (no Docker). If your bringup launch file has
+  another name, start the ROS side manually.
+* **Dataset health analysis** runs in a LeRobot environment; the stub could not run it.
+* **Hugging Face / GitHub publishing** needs accounts; the UI calls the existing commands.
+
+## Known limitations
+
+* No pause/resume for recordings: physical_ai_server has no such command. Stop and Re-record
+  are offered instead.
+* No authentication (same as before). Keep `PHYSIOS_HOST=127.0.0.1`, or use
+  `PHYSIOS_ALLOW_REMOTE=1` only on a trusted network.
+* Custom robots: the generated server config still has to be installed into
+  physical_ai_server by hand (unchanged from v4).
+* The hardware test is driven by the browser (unchanged from v4). If the tab dies mid-test, the
+  last command holds. A wrongly mapped joint is caught in the 0.6 s pre-hold, before the
+  intended motion.
+* The frontend bundle includes three.js (≈630 kB, loaded only by Robot Management).

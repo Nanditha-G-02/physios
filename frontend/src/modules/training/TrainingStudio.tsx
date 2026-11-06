@@ -187,11 +187,11 @@ function NewTraining() {
               <div className="grid g3">
                 <Field label="Steps"><NumberInput value={cfg.train.steps} onChange={(v) => setTrain({ steps: v })} data-field="steps" /></Field>
                 <Field label="Batch size"><NumberInput value={cfg.train.batch_size} onChange={(v) => setTrain({ batch_size: v })} /></Field>
-                <Field label="Learning rate"><Input className="mono" value={String(cfg.train.lr)} onChange={(e) => setTrain({ lr: e.target.value })} /></Field>
-                <Field label="Log every"><NumberInput value={cfg.train.log_freq} onChange={(v) => setTrain({ log_freq: v })} /></Field>
+                <Field label="Learning rate"><Input className="mono" value={String(cfg.train.lr)} onChange={(e) => setTrain({ lr: e.target.value })} data-field="lr" /></Field>
+                <Field label="Log every"><NumberInput value={cfg.train.log_freq} onChange={(v) => setTrain({ log_freq: v })} data-field="log-freq" /></Field>
                 <Field label="Checkpoint every"><NumberInput value={cfg.train.save_freq} onChange={(v) => setTrain({ save_freq: v })} /></Field>
                 <Field label="Data workers"><NumberInput value={cfg.train.num_workers} onChange={(v) => setTrain({ num_workers: v })} /></Field>
-                <Field label="Seed"><NumberInput value={cfg.train.seed} onChange={(v) => setTrain({ seed: v })} /></Field>
+                <Field label="Seed"><NumberInput value={cfg.train.seed} onChange={(v) => setTrain({ seed: v })} data-field="seed" /></Field>
                 <Field label="Device"><Select value={cfg.train.device} onChange={(v) => setTrain({ device: v })} options={['cuda', 'cpu']} /></Field>
               </div>
               <Field label="Episodes"><Segmented value={cfg.episodes} onChange={(v) => setCfg({ ...cfg, episodes: v })} options={[{ value: 'exclude_rejected', label: 'All except rejected' }, { value: 'accepted_only', label: 'Accepted only' }, { value: 'all', label: 'All' }]} /></Field>

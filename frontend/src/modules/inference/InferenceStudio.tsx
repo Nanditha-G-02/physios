@@ -91,7 +91,12 @@ function Studio() {
             </div>
           </Panel>
         )}
-        <Logs id={current?.id} />
+        {!current && active.data?.rollouts?.[0] && ['failed'].includes(active.data.rollouts[0].status) && Date.now() - Date.parse(active.data.rollouts[0].created_at) < 15 * 60000 && (
+          <Panel title="Last load attempt failed" actions={<StatusBadge status="failed" />} data-testid="last-failed">
+            <Callout tone="danger" title={active.data.rollouts[0].error || active.data.rollouts[0].end_reason || 'The worker stopped.'}>The worker log below shows why. Nothing was sent to the robot.</Callout>
+          </Panel>
+        )}
+        <Logs id={current?.id || (active.data?.rollouts?.[0]?.status === 'failed' ? active.data.rollouts[0].id : undefined)} />
       </div>
       <div className="stack">
         <Panel title="Live input" sub="What the model sees">

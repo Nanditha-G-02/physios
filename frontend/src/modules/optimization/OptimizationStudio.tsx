@@ -205,7 +205,7 @@ function Diagnosis({ id }: { id: string }) {
           {(d.notes || []).concat(d.caveats || []).map((n: string) => <Callout key={n} tone="info">{n}</Callout>)}
         </div>
       </div>
-      <Confirm open={!!proposal} onClose={() => setProposal(null)} title="Review the trials" confirmLabel={mode === 'auto' ? 'Create and start' : 'Create session'} onConfirm={create} busy={busy === 'create'}>
+      <Confirm open={!!proposal} disabled={!proposal?.ok} onClose={() => setProposal(null)} title="Review the trials" confirmLabel={mode === 'auto' ? 'Create and start' : 'Create session'} onConfirm={create} busy={busy === 'create'}>
         {proposal && (
           <div className="stack">
             {proposal.errors?.length > 0 && <Callout tone="danger" title="Cannot create">{proposal.errors.join(' ')}</Callout>}

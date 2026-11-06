@@ -520,7 +520,7 @@ function DataCheck({ robot, refresh }: { robot: any; refresh: () => void }) {
             <Button size="sm" icon={<I.download />} onClick={() => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([yaml.yaml], { type: 'text/yaml' })); a.download = yaml.filename; a.click(); }}>Download {yaml.filename}</Button>
             <div data-server-yaml style={{ display: 'none' }}>{yaml.yaml}</div>
           </div>
-        ) : <span className="small muted">Available from Stage 3 (hardware verified).</span>}
+        ) : <span className="small muted">{allowed.export_server_config ? 'Press Export to generate the file.' : 'Available from Stage 3 (hardware verified).'}</span>}
       </Panel>
     </div>
   );

@@ -242,14 +242,14 @@ export function Modal({ open, onClose, title, children, footer, wide, icon }: { 
 
 /** Confirmation dialog. `typeToConfirm` requires the operator to type a word (for deletes
  *  and anything that moves the robot). */
-export function Confirm({ open, onClose, onConfirm, title, children, confirmLabel = 'Confirm', danger, typeToConfirm, busy, checks }: {
+export function Confirm({ open, onClose, onConfirm, title, children, confirmLabel = 'Confirm', danger, typeToConfirm, busy, checks, disabled }: {
   open: boolean; onClose: () => void; onConfirm: () => void; title: ReactNode; children?: ReactNode; confirmLabel?: string;
-  danger?: boolean; typeToConfirm?: string; busy?: boolean; checks?: string[];
+  danger?: boolean; typeToConfirm?: string; busy?: boolean; checks?: string[]; disabled?: boolean;
 }) {
   const [typed, setTyped] = useState('');
   const [ticked, setTicked] = useState<boolean[]>([]);
   useEffect(() => { if (open) { setTyped(''); setTicked((checks || []).map(() => false)); } }, [open, checks]);
-  const ok = (!typeToConfirm || typed.trim() === typeToConfirm) && ticked.every(Boolean);
+  const ok = !disabled && (!typeToConfirm || typed.trim() === typeToConfirm) && ticked.every(Boolean);
   return (
     <Modal open={open} onClose={onClose} title={title} icon={danger ? <span style={{ color: 'var(--danger)' }}><I.alert width={20} height={20} /></span> : undefined}
       footer={<><Button onClick={onClose}>Cancel</Button><Button variant={danger ? 'danger' : 'primary'} disabled={!ok} busy={busy} onClick={onConfirm} data-action="confirm">{confirmLabel}</Button></>}>

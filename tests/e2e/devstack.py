@@ -86,6 +86,22 @@ def seed():
     return pid
 
 
+def real_fixture(work):
+    """A finished run whose checkpoint points at the recorded dataset, in an environment with
+    a real Python (numpy, pyarrow; no LeRobot): rollout preparation (compatibility, safety
+    limits from the data) runs for real; loading the model then fails honestly."""
+    import fixtures as fx
+    env = {'name': 'realpy', 'prefix': str(work / 'realpy'), 'lerobot': None}
+    run = fx.write_run(work / 'training', 'fx-real', 'real_act', fx.synth_rows(30),
+                       extra={'env': env})
+    ds = work / 'ds' / 'NandithaaaG' / 's101_dataset_red_cube'
+    for ck in (Path(run['output_dir']) / 'checkpoints').iterdir():
+        if ck.name.isdigit():
+            (ck / 'pretrained_model' / 'train_config.json').write_text(json.dumps({
+                'dataset': {'root': str(ds), 'repo_id': 'NandithaaaG/s101_dataset_red_cube'},
+                'policy': {'type': 'act'}}))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('work')
@@ -99,6 +115,9 @@ def main():
     for d in ('plan', 'ds', 'training', 'repo', 'var'):
         (work / d).mkdir(parents=True, exist_ok=True)
     env = fx.make_stub_env(work / 'stub_env', working_trainer=True)
+    (work / 'realpy' / 'bin').mkdir(parents=True, exist_ok=True)
+    if not (work / 'realpy' / 'bin' / 'python').exists():
+        (work / 'realpy' / 'bin' / 'python').symlink_to(sys.executable)
     if not a.keep:
         fx.standard_fixture(work / 'training')
     py = sys.executable
@@ -116,7 +135,8 @@ def main():
            str(work / 'ds')], ROOT / 'physical_ai_manager' / 'e2e', 'standin.log')
     spawn([py, '-m', 'pam_trainer', '--repo-root', str(work / 'repo'), '--data-dir',
            str(work / 'training'), '--dataset-root', str(work / 'ds'), '--env',
-           'stub=%s' % env], ROOT / 'physical_ai_trainer', 'trainer.log')
+           'stub=%s' % env, '--env', 'realpy=%s' % (work / 'realpy')],
+          ROOT / 'physical_ai_trainer', 'trainer.log')
     spawn([py, '-m', 'physios_gateway'], ROOT / 'physios' / 'backend', 'gateway.log',
           {'PHYSIOS_VAR_DIR': str(work / 'var'), 'PHYSIOS_DATASET_ROOTS': str(work / 'ds'),
            'PHYSIOS_CONFIG': str(work / 'none.env')})
@@ -137,6 +157,7 @@ def main():
     print('[devstack] up: http://127.0.0.1:8700', flush=True)
     if a.seed:
         seed()
+        real_fixture(work)
         print('[devstack] seeded', flush=True)
     print('[devstack] READY', flush=True)
     while True:

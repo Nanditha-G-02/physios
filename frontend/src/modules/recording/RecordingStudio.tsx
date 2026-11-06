@@ -142,6 +142,13 @@ function Controls({ running, phase, onStopped }: { running: boolean; phase: numb
   );
 }
 
+function ReviewSwitch() {
+  const toast = useToast();
+  const s = useLoad(() => planning('settings.get', {}), []);
+  const on = !!s.data?.record_review_enabled;
+  return <Switch checked={on} onChange={(v) => planning('settings.set', { record_review_enabled: v }).then(s.setData, toast.error)} label="Review each take" />;
+}
+
 function PlanRecorder({ phase, running }: { phase: number | null; running: boolean }) {
   const toast = useToast();
   const st = useLoad(() => planning('record.state', {}), [], 2500);
@@ -165,7 +172,7 @@ function PlanRecorder({ phase, running }: { phase: number | null; running: boole
         try {
           const rec = await planning('record.recent', { limit: 1 });
           const r = rec.recent?.[0];
-          if (r && Date.now() - Date.parse(r.t) < 60000 && rec.settings?.record_review_enabled !== false) setReview({ dataset_id: r.dataset_id, episode_index: r.episode_index, episode_id: r.episode_id });
+          if (r && Date.now() - Date.parse(r.t) < 60000 && rec.settings?.record_review_enabled) setReview({ dataset_id: r.dataset_id, episode_index: r.episode_index, episode_id: r.episode_id });
         } catch { /* ignore */ }
       }, 800);
     }
@@ -200,7 +207,7 @@ function PlanRecorder({ phase, running }: { phase: number | null; running: boole
 
   return (
     <>
-      <Panel title={plan.task.name} sub={`v${s.working_version ?? plan.version} · ${s.dataset?.id || s.dataset || ''}`} actions={<Badge tone="accent">{done}/{eps.length}</Badge>} data-testid="plan-recorder">
+      <Panel title={plan.task.name} sub={`v${s.working_version ?? plan.version} · ${s.dataset?.id || s.dataset || ''}`} actions={<><ReviewSwitch /><Badge tone="accent">{done}/{eps.length}</Badge></>} data-testid="plan-recorder">
         <div className="stack">
           <Progress value={done} max={eps.length} />
           {cur && (
