@@ -16,14 +16,14 @@ CAMERA_HINT = ('web_video_server is not answering. It runs inside the physical_a
                'container with the bringup launch.')
 
 
-def http_get(url, path, timeout=1.5):
+def http_get(url, path, timeout=1.5, read_body=True):
     u = urlparse(url)
     c = http.client.HTTPConnection(u.hostname, u.port or 80, timeout=timeout)
     try:
         t0 = time.time()
         c.request('GET', path)
         r = c.getresponse()
-        body = r.read(1 << 20)
+        body = r.read(1 << 16) if read_body else b''
         return r.status, body, round((time.time() - t0) * 1000)
     finally:
         c.close()
@@ -74,7 +74,7 @@ class Health:
 
     def _camera(self):
         try:
-            st, _, ms = http_get(self.cfg.camera_url, '/', timeout=1.0)
+            st, _, ms = http_get(self.cfg.camera_url, '/', timeout=1.0, read_body=False)
             if st < 500:
                 return {'status': 'ok', 'latency_ms': ms,
                         'detail': 'web_video_server at %s' % self.cfg.camera_url}
