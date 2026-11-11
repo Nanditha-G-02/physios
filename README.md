@@ -1,5 +1,7 @@
 # PHYSIOS: The Operating System for Physical Intelligence
 
+Version 1.1.0 · see `CHANGELOG.md`
+
 PHYSIOS is a standalone application for the whole imitation-learning loop on a real robot:
 plan demonstrations, record them, curate the dataset, train and optimise a policy on this PC,
 evaluate it, and run it on the robot under supervision.
@@ -35,6 +37,13 @@ cd /home/ihub/lerobot/physical_ai_tools/physios
 ./stop_physios.sh
 ```
 
+Or in Docker (gateway + frontend only; the robot side and the training service stay as they are):
+
+```bash
+cd /home/ihub/lerobot/physical_ai_tools/physios/docker
+./physios-docker.sh up             # http://127.0.0.1:8700
+```
+
 `--with-ros` starts the Zenoh router and the physical_ai_server bringup inside the
 `physical_ai_server` container if they are not already running. Neither of these moves the robot.
 Without it, start them yourself; PHYSIOS shows which services are missing and how to start them.
@@ -47,6 +56,12 @@ Same look, navigation and page layouts as the Physical AI Manager:
 05 Training (new training, runs, queue, optimize, evaluate, compare, storage) · 06 Inference
 (model check, host rollout, container inference) · R Robots · Settings.
 
+## Access
+
+On a loopback-only gateway (default) no sign-in is needed. Set `PHYSIOS_AUTH_TOKEN` in
+`configuration/physios.env` to require an operator token. It is mandatory before PHYSIOS may
+listen on the network (`PHYSIOS_HOST`, `PHYSIOS_ALLOW_REMOTE=1`).
+
 ## Documentation
 
 | File | Contents |
@@ -57,6 +72,10 @@ Same look, navigation and page layouts as the Physical AI Manager:
 | `documentation/04-OPERATIONS.md` | installation, configuration, execution, troubleshooting, testing |
 | `documentation/05-STATUS.md` | what was verified, how, and what was not |
 | `documentation/06-PROJECT-REPORT.md` | full report: v4 phases, PHYSIOS, renaming, tests, commits, pending tasks |
+| `documentation/07-VALIDATION.md` | requirements traceability, test results, deployment validation |
+| `documentation/paper/physios-ieee.pdf` | IEEE-format technical paper (LaTeX source alongside) |
+| `documentation/screenshots/` | screenshots of every module (desktop and phone width) |
+| `docker/` | Dockerfile, compose file and `physios-docker.sh` |
 
 ## Safety
 

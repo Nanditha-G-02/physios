@@ -38,6 +38,7 @@ from physios_gateway.adapters.rosbridge import RosBridge
 from physios_gateway.config import Config, LOOPBACK
 from physios_gateway.errors import ApiError, bad_request, not_found
 from physios_gateway.services.activity import Activity
+from physios_gateway.services.auth import Auth
 from physios_gateway.services.health import Health, TRAINER_HINT, CAMERA_HINT
 from physios_gateway.services.ros_api import RosApi
 from physios_gateway.services.system import SystemMonitor
@@ -61,6 +62,7 @@ class Gateway:
         self.system = SystemMonitor(cfg.trainer_dir, [cfg.var_dir, *cfg.dataset_roots,
                                                       cfg.repo_root])
         self.health = Health(cfg, self.ros, self.rosapi, self.datasets, self.activity)
+        self.auth = Auth(cfg.auth_token, cfg.auth_session_h)
         self.started = time.time()
 
     def _ros_changed(self, connected, error):
@@ -89,9 +91,11 @@ def make_handler(gw):
             log.debug('%s %s', self.address_string(), fmt % args)
 
         # ------------------------------------------------------------- helpers --
-        def _json(self, status, obj):
+        def _json(self, status, obj, headers=None):
             data = json.dumps(obj, default=str).encode()
             self.send_response(status)
+            for k, v in (headers or {}).items():
+                self.send_header(k, v)
             self.send_header('Content-Type', 'application/json; charset=utf-8')
             self.send_header('Content-Length', str(len(data)))
             self.send_header('Cache-Control', 'no-store')
@@ -140,6 +144,12 @@ def make_handler(gw):
             try:
                 if method == 'POST':
                     self._check_origin()
+                if path.startswith('/api/v1/auth/'):
+                    return self._auth(method, path[len('/api/v1/auth/'):])
+                if (path.startswith('/api/') or path == '/ros') and \
+                        not gw.auth.allowed(self.headers):
+                    raise ApiError(401, 'auth_required', 'Sign in to PHYSIOS to continue.',
+                                   'Enter the access token set in PHYSIOS_AUTH_TOKEN.')
                 if path == '/ros' and self.headers.get('Upgrade', '').lower() == 'websocket':
                     self._check_origin()
                     return self._ws_proxy()
@@ -174,6 +184,32 @@ def make_handler(gw):
                                                                    '/activity', '/events')):
                     log.info('%s %s -> %s (%d ms)', method, path, status,
                              (time.time() - t0) * 1000)
+
+        # ----------------------------------------------------------------- auth --
+        def _auth(self, method, what):
+            a = gw.auth
+            if method == 'GET' and what == 'session':
+                return self._json(200, {'enabled': a.enabled,
+                                        'authenticated': a.allowed(self.headers)})
+            if method == 'POST' and what == 'login':
+                if not a.enabled:
+                    return self._json(200, {'enabled': False, 'authenticated': True})
+                addr = self.client_address[0]
+                if a.blocked(addr):
+                    raise ApiError(429, 'too_many_attempts',
+                                   'Too many failed sign-ins. Wait a minute and try again.')
+                sid = a.login(addr, self._body().get('token'))
+                if not sid:
+                    gw.activity.add('gateway', 'warn', 'Failed sign-in from %s' % addr)
+                    raise ApiError(401, 'bad_token', 'That access token is not correct.')
+                gw.activity.add('gateway', 'info', 'Operator signed in from %s' % addr)
+                return self._json(200, {'enabled': True, 'authenticated': True},
+                                  {'Set-Cookie': a.cookie(sid)})
+            if method == 'POST' and what == 'logout':
+                a.logout(self.headers)
+                return self._json(200, {'enabled': a.enabled, 'authenticated': not a.enabled},
+                                  {'Set-Cookie': a.clear_cookie()})
+            raise not_found('No route for %s /api/v1/auth/%s' % (method, what))
 
         # --------------------------------------------------------------- routes --
         def route(self, m, path, q, b):

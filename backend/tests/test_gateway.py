@@ -230,7 +230,8 @@ def test_config_defaults_and_env_file(tmp_path):
     assert c.trainer_url == 'http://127.0.0.1:1' and c.validate() == []
     c2 = Config({'PHYSIOS_HOST': '0.0.0.0'}, environ={'PHYSIOS_CONFIG': '/none'})
     assert any('loopback' in p for p in c2.validate())
-    c3 = Config({'PHYSIOS_HOST': '0.0.0.0', 'PHYSIOS_ALLOW_REMOTE': '1', 'PHYSIOS_ROSBRIDGE_URL': 'http://x'},
+    c3 = Config({'PHYSIOS_HOST': '0.0.0.0', 'PHYSIOS_ALLOW_REMOTE': '1', 'PHYSIOS_ROSBRIDGE_URL': 'http://x',
+                 'PHYSIOS_AUTH_TOKEN': 'remote-operator-token'},
                 environ={'PHYSIOS_CONFIG': '/none'})
     assert len(c3.validate()) == 1 and 'ws://' in c3.validate()[0]
 
@@ -401,3 +402,67 @@ def test_activity_records_commands(stack):
     texts = [e['text'] for e in a['events']]
     assert any('gateway' in t and 'started' in t for t in texts)
     assert any('Task command start_record' in t for t in texts)
+
+
+# ------------------------------------------------------------------------ authentication
+def test_auth_sessions_bearer_rate_limit_and_expiry():
+    from physios_gateway.services.auth import Auth, COOKIE
+    now = [1000.0]
+    a = Auth('correct-horse-battery', session_hours=1, clock=lambda: now[0])
+    assert a.enabled and not a.allowed({})
+    assert a.allowed({'Authorization': 'Bearer correct-horse-battery'})
+    assert not a.allowed({'Authorization': 'Bearer wrong'})
+    sid = a.login('1.2.3.4', 'correct-horse-battery')
+    assert sid and a.allowed({'Cookie': 'x=1; %s=%s' % (COOKIE, sid)})
+    assert 'HttpOnly' in a.cookie(sid) and 'SameSite=Strict' in a.cookie(sid)
+    now[0] += 3601  # expired
+    assert not a.allowed({'Cookie': '%s=%s' % (COOKIE, sid)})
+    for _ in range(5):
+        assert a.login('5.6.7.8', 'nope') is None
+    assert a.blocked('5.6.7.8') and not a.blocked('1.2.3.4')
+    now[0] += 61
+    assert not a.blocked('5.6.7.8')
+    assert not Auth('').enabled and Auth('').allowed({})
+
+
+def test_remote_binding_requires_token(tmp_path):
+    env = {'PHYSIOS_CONFIG': str(tmp_path / 'none.env')}
+    c = Config({'PHYSIOS_HOST': '0.0.0.0', 'PHYSIOS_ALLOW_REMOTE': '1'}, environ=env)
+    assert any('PHYSIOS_AUTH_TOKEN' in p for p in c.validate())
+    c = Config({'PHYSIOS_HOST': '0.0.0.0', 'PHYSIOS_ALLOW_REMOTE': '1', 'PHYSIOS_AUTH_TOKEN': 'short'}, environ=env)
+    assert any('12 characters' in p for p in c.validate())
+    c = Config({'PHYSIOS_HOST': '0.0.0.0', 'PHYSIOS_ALLOW_REMOTE': '1', 'PHYSIOS_AUTH_TOKEN': 'a-long-enough-token'}, environ=env)
+    assert c.validate() == [] and c.public()['auth_enabled'] is True
+    assert 'a-long-enough-token' not in json.dumps(c.public())
+
+
+def test_api_requires_sign_in_when_enabled(stack):
+    from physios_gateway.services.auth import Auth
+    gw = stack['gw']
+    old = gw.auth
+    gw.auth = Auth('integration-token-123')
+    try:
+        st, body, _ = req(stack, '/api/v1/health')
+        assert st == 401 and json.loads(body)['error']['code'] == 'auth_required'
+        st, body, _ = req(stack, '/')  # the login screen itself stays reachable
+        assert st == 200
+        st, body, _ = req(stack, '/api/v1/auth/session')
+        assert json.loads(body) == {'enabled': True, 'authenticated': False}
+        st, body, _ = req(stack, '/api/v1/auth/login', {'token': 'wrong'})
+        assert st == 401 and json.loads(body)['error']['code'] == 'bad_token'
+        st, body, h = req(stack, '/api/v1/auth/login', {'token': 'integration-token-123'})
+        assert st == 200 and 'physios_session=' in h['Set-Cookie']
+        cookie = h['Set-Cookie'].split(';')[0]
+        st, body, _ = req(stack, '/api/v1/health', headers={'Cookie': cookie})
+        assert st == 200
+        st, _, _ = req(stack, '/api/v1/config', headers={'Authorization': 'Bearer integration-token-123'})
+        assert st == 200
+        st, _, h = req(stack, '/api/v1/auth/logout', {}, headers={'Cookie': cookie})
+        assert st == 200 and 'Max-Age=0' in h['Set-Cookie']
+        st, _, _ = req(stack, '/api/v1/health', headers={'Cookie': cookie})
+        assert st == 401
+        st, body, _ = req(stack, '/api/v1/auth/login', {'token': 'integration-token-123'},
+                          headers={'Origin': 'http://evil.example'})
+        assert st == 403
+    finally:
+        gw.auth = old

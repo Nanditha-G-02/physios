@@ -12,7 +12,7 @@ import background from '@/assets/home-background.jpg';
 import { Overview } from '../dashboard/Dashboard';
 import RobotIllustration from './RobotIllustration';
 
-const VERSION = '1.0.0';
+const VERSION = '1.1.0';
 // Same families as physical_ai_server/planning/profiles.py
 const FAMILIES = [
   { re: /(so[-_]?10[01]|s10[01])/i, key: 'so101', name: 'SO-101 arm' },

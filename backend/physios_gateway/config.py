@@ -67,6 +67,8 @@ class Config:
         self.trainer_dir = self.repo_root / 'physical_ai_trainer'
         self.ros_timeout_s = float(get('PHYSIOS_ROS_TIMEOUT_S', '20'))
         self.max_upload_mb = int(get('PHYSIOS_MAX_UPLOAD_MB', '128'))
+        self.auth_token = get('PHYSIOS_AUTH_TOKEN', '')
+        self.auth_session_h = float(get('PHYSIOS_AUTH_SESSION_H', '12'))
 
     def validate(self):
         problems = []
@@ -74,6 +76,11 @@ class Config:
             problems.append('PHYSIOS_HOST=%s is not a loopback address. PHYSIOS fronts services '
                             'that move the robot; set PHYSIOS_ALLOW_REMOTE=1 only on a trusted '
                             'network.' % self.host)
+        if self.host not in LOOPBACK and not self.auth_token:
+            problems.append('PHYSIOS_HOST=%s is reachable from the network: set PHYSIOS_AUTH_TOKEN '
+                            '(at least 12 characters) so that operators must sign in.' % self.host)
+        if self.auth_token and len(self.auth_token) < 12:
+            problems.append('PHYSIOS_AUTH_TOKEN must be at least 12 characters long.')
         for name, url in (('PHYSIOS_TRAINER_URL', self.trainer_url),
                           ('PHYSIOS_CAMERA_URL', self.camera_url)):
             if not url.startswith('http://'):
@@ -93,4 +100,5 @@ class Config:
             'dataset_roots': [str(r) for r in self.dataset_roots],
             'repo_root': str(self.repo_root), 'frontend_dist': str(self.frontend_dist),
             'config_file': self.source_file, 'ros_timeout_s': self.ros_timeout_s,
+            'auth_enabled': bool(self.auth_token),
         }

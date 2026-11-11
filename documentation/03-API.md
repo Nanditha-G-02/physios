@@ -11,10 +11,12 @@ Base URL: `http://127.0.0.1:8700` (`PHYSIOS_HOST`, `PHYSIOS_PORT`). JSON in, JSO
 | HTTP | code | meaning |
 |---|---|---|
 | 400 | `bad_request`, `bad_dataset_id`, `bad_path` | invalid input |
+| 401 | `auth_required`, `bad_token` | sign-in required / wrong access token (only when `PHYSIOS_AUTH_TOKEN` is set) |
 | 403 | `cross_origin` | POST or WebSocket from another origin |
 | 404 | `not_found` | unknown route or resource |
 | 413 | `too_large` | body over 2 MB (JSON) or `PHYSIOS_MAX_UPLOAD_MB` (trainer uploads) |
 | 416 | `range_not_satisfiable` | bad Range |
+| 429 | `too_many_attempts` | five failed sign-ins from one address within a minute |
 | 422 | `command_rejected` | physical_ai_server refused the command (message from the server) |
 | 428 | `confirmation_required` | motion command sent without `"confirm": true` |
 | 502 | `ros_call_failed`, `bad_response` | ROS service failed |
@@ -24,9 +26,26 @@ Base URL: `http://127.0.0.1:8700` (`PHYSIOS_HOST`, `PHYSIOS_PORT`). JSON in, JSO
 Routes under `/api/v1/trainer/` are forwarded unchanged. Their errors keep the training
 service's shape, `{"error": "text"}`, and the frontend accepts both shapes.
 
-**Security**: the gateway binds to loopback unless `PHYSIOS_ALLOW_REMOTE=1`. POST requests
+**Security**: the gateway binds to loopback unless `PHYSIOS_ALLOW_REMOTE=1` and an access
+token (`PHYSIOS_AUTH_TOKEN`, 12+ characters) are both set. POST requests
 and the `/ros` upgrade are refused when `Origin` differs from `Host`. Trainer-forwarded
 requests carry `X-Forwarded-Host`, so the trainer's own same-origin check still applies.
+
+## Authentication (optional)
+
+Off unless `PHYSIOS_AUTH_TOKEN` is set. When on, every `/api/v1` route except `/auth/*`, and the
+`/ros` WebSocket, need a session cookie or `Authorization: Bearer <token>`. The static
+frontend stays public so the sign-in screen can load.
+
+| Method | Path | Body | Result |
+|---|---|---|---|
+| GET | `/auth/session` | | `{enabled, authenticated}` |
+| POST | `/auth/login` | `{token}` | `{enabled: true, authenticated: true}` and `Set-Cookie: physios_session=…; HttpOnly; SameSite=Strict` |
+| POST | `/auth/logout` | | clears the session cookie |
+
+Sessions are random 256-bit ids kept in memory and expire after `PHYSIOS_AUTH_SESSION_H`
+hours (default 12). A gateway restart signs everyone out. Tokens are compared in constant
+time and never appear in `/config`.
 
 ## System
 

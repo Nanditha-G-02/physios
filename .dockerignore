@@ -1,0 +1,9 @@
+node_modules
+**/node_modules
+var
+tests
+documentation
+frontend/src
+frontend/public
+**/__pycache__
+configuration/physios.env

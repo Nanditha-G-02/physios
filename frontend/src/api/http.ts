@@ -28,6 +28,7 @@ async function parse(res: Response): Promise<any> {
   if (res.ok) return body;
   // gateway: {error:{code,message,hint}}; trainer (proxied): {error:"text"}
   const e = body?.error;
+  if (res.status === 401 && e && typeof e === 'object' && e.code === 'auth_required' && typeof window !== 'undefined') window.dispatchEvent(new Event('physios:auth-required'));
   if (e && typeof e === 'object') throw new ApiError(res.status, e.code || 'error', e.message || res.statusText, e.hint, e.details);
   if (typeof e === 'string') throw new ApiError(res.status, res.status === 503 ? 'unavailable' : 'rejected', e);
   throw new ApiError(res.status, 'http_' + res.status, text.slice(0, 300) || res.statusText);

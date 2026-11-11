@@ -58,11 +58,43 @@ the brief also rules out.
   packages (works offline). There is no router, state, chart or UI library: those are a few
   hundred lines here, and the result is one consistent design system.
 
+## Authentication, deployment
+
+* **Authentication** (`backend/physios_gateway/services/auth.py`): optional operator sign-in.
+  Off on a loopback-only gateway (the PC's user accounts are the boundary). It is required
+  (`PHYSIOS_AUTH_TOKEN`) as soon as the gateway listens on the network. Sessions are HttpOnly
+  SameSite=Strict cookies; scripts use a Bearer token; failed sign-ins are rate-limited.
+* **Deployment**: either the scripts (`start_physios.sh` / `stop_physios.sh`), or Docker
+  (`docker/Dockerfile`, `docker/docker-compose.yml`, `docker/physios-docker.sh`). The image
+  holds the gateway and the built frontend only. It runs with host networking next to the
+  existing physical_ai_server and physical_ai_manager containers, as an unprivileged user,
+  with the repository and LeRobot cache mounted read-only. The training service stays on the
+  host because it needs the operator's LeRobot conda environment and the GPU.
+
+```
+Browser ─ PHYSIOS frontend ─┐
+                            ▼
+               PHYSIOS gateway (script or container, :8700)
+   auth · API routing · app services · configuration · activity
+      │              │                 │                │
+  AI services     robotics          data services     infrastructure
+  (pam_trainer:   (physical_ai_     (planning engine,  (health, host metrics,
+   training,       server via        recorder,          GPU via pam_trainer,
+   optimisation,   rosbridge;        LeRobot dataset    Docker, configuration)
+   evaluation,     URDF/robots in    folders)
+   host rollout)   pam_trainer)
+```
+
 ## Design system and navigation
 
 PHYSIOS uses the design language of the existing Physical AI Manager, so operators see the
 same application they already know:
 
+* **v1.1 compact professional layer** (end of `theme.css`): the same components with
+  less whitespace: 14 px card radius with hairline borders, a faint dot-grid canvas, a 78 px
+  rail, 30 px page titles, 44 px panel headers, compact controls and tables, work areas up to
+  1760 px wide. It is responsive: the console stacks below 1100 px, and below 640 px the rail
+  becomes a bottom navigation bar.
 * **Tokens.** Paper greys (`#F3F4F6`, `#ECEEF1`, `#E1E4E8`), ink (`#0B0C0E` … `#B4B9C1`), sky
   blue accents (`#D6E3FF`, `#2457E6`), green / orange / red signals, 22 px card radius, pill
   buttons and chips, Geist Sans and Geist Mono (bundled, offline). Light theme only, as before.

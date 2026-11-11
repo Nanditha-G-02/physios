@@ -1,7 +1,7 @@
 {
   "name": "physios-frontend",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "PHYSIOS - The Operating System for Physical Intelligence (frontend)",
   "type": "module",
   "scripts": {

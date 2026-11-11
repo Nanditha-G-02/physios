@@ -1,6 +1,6 @@
 // Settings: effective configuration (read-only; edit physios/configuration/physios.env),
 // service connections, appearance, environments and where data lives.
-import { gateway } from '@/api/gateway';
+import { auth, gateway } from '@/api/gateway';
 import { trainer } from '@/api/trainer';
 import { useAvailability, useSystem } from '@/app/system';
 import { I } from '@/design/icons';
@@ -14,7 +14,7 @@ export default function Settings() {
   const cfg = useLoad(() => gateway.config(), []);
   const envs = useLoad(() => trainer.envs(), [av.trainer], 0, av.trainer);
   const tsys = useLoad(() => trainer.system(), [av.trainer], 0, av.trainer);
-  const c = cfg.data;
+  const c: any = cfg.data;
   return (
     <Page label="Settings" title="Settings" intro="PHYSIOS reads its configuration from the environment and physios/configuration/physios.env at start-up. Values shown here are the ones in effect.">
       <div className="grid g2">
@@ -36,6 +36,11 @@ export default function Settings() {
           </Panel>
         </div>
         <div className="stack">
+          <Panel title="Access" sub="Operator sign-in (PHYSIOS_AUTH_TOKEN)" actions={c?.auth_enabled ? <Button size="sm" onClick={() => auth.logout().finally(() => window.location.reload())} data-action="sign-out">Sign out</Button> : undefined}>
+            {!c ? <Loading rows={1} /> : c.auth_enabled
+              ? <div className="row small"><Badge tone="ok" dot>sign-in required</Badge><span className="muted">Every page and API call needs a session; sessions expire after 12 hours.</span></div>
+              : <div className="row small"><Badge dot>off</Badge><span className="muted">Loopback only: anyone with a login on this PC can use PHYSIOS. Set PHYSIOS_AUTH_TOKEN to require sign-in (required for network access).</span></div>}
+          </Panel>
           <Panel title="Effective configuration">
             {!c ? <Loading rows={4} /> : (
               <KV items={[

@@ -4,6 +4,7 @@ import { ErrorState, Loading, ToastProvider } from '@/design/ui';
 import { RouterProvider, match, useRouter } from './router';
 import { Shell } from './Shell';
 import { SystemProvider } from './system';
+import { AuthGate } from './AuthGate';
 
 const Home = lazy(() => import('@/modules/home/Home'));
 const Planning = lazy(() => import('@/modules/planning/PlanningStudio'));
@@ -63,9 +64,11 @@ export function App() {
   return (
     <RouterProvider>
       <ToastProvider>
-        <SystemProvider>
-          <Shell><Routes /></Shell>
-        </SystemProvider>
+        <AuthGate>
+          <SystemProvider>
+            <Shell><Routes /></Shell>
+          </SystemProvider>
+        </AuthGate>
       </ToastProvider>
     </RouterProvider>
   );

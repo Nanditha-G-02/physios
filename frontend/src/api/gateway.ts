@@ -14,6 +14,12 @@ export const gateway = {
   datasetRoots: () => get('/datasets/roots'),
 };
 
+export const auth = {
+  session: () => get<{ enabled: boolean; authenticated: boolean }>('/auth/session'),
+  login: (token: string) => post<{ enabled: boolean; authenticated: boolean }>('/auth/login', { token }),
+  logout: () => post('/auth/logout', {}),
+};
+
 export const ros = {
   status: () => get('/ros/status'),
   robotTypes: () => get<{ robot_types: string[] }>('/ros/robot-types'),

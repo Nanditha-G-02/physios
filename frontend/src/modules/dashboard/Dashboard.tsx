@@ -66,7 +66,7 @@ export function Overview() {
             {!health ? <Loading rows={3} /> : (
               <div className="grid g3" data-testid="service-grid">
                 {Object.entries(health.services).map(([k, v]) => (
-                  <div key={k} className="panel" style={{ padding: 12, boxShadow: 'none' }} data-service-card={k} data-status={v.status}>
+                  <div key={k} className="panel svc-card" style={{ padding: '10px 12px 10px 14px' }} data-service-card={k} data-status={v.status}>
                     <div className="row-between"><span className="label">{k.replace('_', ' ')}</span><StatusBadge status={v.status} /></div>
                     <div className="small text-2" style={{ marginTop: 6 }}>{v.detail}</div>
                     {v.status !== 'ok' && v.hint && <div className="tiny muted" style={{ marginTop: 4 }}>{v.hint}</div>}

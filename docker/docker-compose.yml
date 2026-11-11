@@ -1,0 +1,39 @@
+# PHYSIOS in Docker, next to the existing physical_ai_tools containers.
+#
+#   cd physios/docker && ./physios-docker.sh up        (or: docker compose up -d --build)
+#
+# network_mode: host, like physical_ai_manager / physical_ai_server, so the gateway reaches
+# rosbridge (:9090), web_video_server (:8080) and the host training service (:8766) on
+# 127.0.0.1, and the browser opens http://127.0.0.1:8700 as before.
+# Settings come from ../configuration/physios.env if it exists (same file as the scripts).
+name: physios
+services:
+  physios:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      args:
+        BASE_IMAGE: ${PHYSIOS_BASE_IMAGE:-python:3.12-slim}
+        UID: ${PHYSIOS_UID:-1000}
+        GID: ${PHYSIOS_GID:-1000}
+    image: physios:1.1.0
+    container_name: physios
+    network_mode: host
+    restart: unless-stopped
+    env_file:
+      - path: ../configuration/physios.env
+        required: false
+    environment:
+      PHYSIOS_REPO_ROOT: /repo
+      PHYSIOS_DATASET_ROOTS: /repo/docker/huggingface/lerobot:/data/hf-lerobot
+      PHYSIOS_VAR_DIR: /var/lib/physios
+    volumes:
+      # the physical_ai_tools checkout, read-only: datasets under docker/huggingface/lerobot
+      # and pam_trainer.environment for host information
+      - ../..:/repo:ro
+      # LeRobot's default cache on the host, read-only
+      - ${HOME:-/root}/.cache/huggingface/lerobot:/data/hf-lerobot:ro
+      # activity log and gateway logs
+      - physios-var:/var/lib/physios
+volumes:
+  physios-var:

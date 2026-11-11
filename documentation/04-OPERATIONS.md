@@ -72,6 +72,50 @@ gateway.
 **The old Physical AI Manager:** the container on port 80 is independent. Keep it as a
 fallback or stop it with `docker stop physical_ai_manager`. PHYSIOS does not use it.
 
+## 4a. Running in Docker (optional)
+
+The image contains the gateway and the built frontend (Python standard library only, on
+`python:3.12-slim`; no pip packages). The robot side and the training service keep running where they run
+today.
+
+```bash
+cd /home/ihub/lerobot/physical_ai_tools/physios/docker
+./physios-docker.sh up        # builds the image the first time, then http://127.0.0.1:8700
+./physios-docker.sh status    # container state + service health
+./physios-docker.sh logs
+./physios-docker.sh down
+```
+
+* Host networking, like the other physical_ai_tools containers, so 127.0.0.1:9090 / 8080 /
+  8766 are reachable.
+* The repository is mounted read-only at `/repo` (datasets under
+  `docker/huggingface/lerobot` and `pam_trainer.environment`), and `~/.cache/huggingface/lerobot`
+  read-only at `/data/hf-lerobot`. Activity and logs go to the `physios-var` volume.
+* Settings come from `configuration/physios.env`, the same file the scripts use.
+* It runs as uid/gid 1000 (`PHYSIOS_UID`, `PHYSIOS_GID` to change), with a health check on
+  `/api/v1/auth/session`.
+* Use either Docker or `start_physios.sh` for the gateway, not both on the same port.
+  `start_physios.sh` still starts pam_trainer if needed; with Docker, start it yourself
+  (`cd physical_ai_trainer && python3 -m pam_trainer`).
+* GPU information comes from `nvidia-smi` through pam_trainer. Inside the container the
+  gateway reports what pam_trainer reports.
+
+## 4b. Operator sign-in (optional; required for network access)
+
+```bash
+# configuration/physios.env
+PHYSIOS_AUTH_TOKEN=choose-a-long-random-token     # 12+ characters
+# to serve other machines on a trusted network:
+PHYSIOS_HOST=0.0.0.0
+PHYSIOS_ALLOW_REMOTE=1
+```
+
+The browser then shows a sign-in screen. Sessions last 12 hours
+(`PHYSIOS_AUTH_SESSION_H`), and Settings → Access has Sign out. Scripts send
+`Authorization: Bearer <token>`. After five wrong tokens from one address within a minute,
+that address waits a minute. Without a token the gateway refuses to start on a non-loopback
+address. Use HTTPS (a reverse proxy) if the network is not trusted.
+
 ## 5. Troubleshooting
 
 | Symptom (PHYSIOS) | Cause | Fix |
@@ -83,7 +127,8 @@ fallback or stop it with `docker stop physical_ai_manager`. PHYSIOS does not use
 | No robots in the Home robot card | robot side down | as above |
 | Robot card Confirm disabled on Home | a task is running | stop the recording/inference first |
 | Frontend page "gateway is running, frontend not built" | no `frontend/dist` | `./start_physios.sh --build` |
-| "port 8700 is used by another program" | another process | `PHYSIOS_PORT=8710 ./start_physios.sh` |
+| "port 8700 is used by another program" | another process (or the Docker container) | `./physios-docker.sh down`, or `PHYSIOS_PORT=8710 ./start_physios.sh` |
+| Sign-in screen, token unknown | `PHYSIOS_AUTH_TOKEN` is set | read it from `configuration/physios.env`; remove it to turn sign-in off (loopback only) |
 | Host rollout load fails "No module named lerobot" | the run's environment lacks LeRobot | train/run in the LeRobot conda env |
 | Recording start rejected | server message is shown as is; usually robot type not set or a task running | follow the message |
 
@@ -92,7 +137,7 @@ fallback or stop it with `docker stop physical_ai_manager`. PHYSIOS does not use
 ## 6. Tests
 
 ```bash
-# gateway (17 tests, in-process fakes of rosbridge, trainer, camera)
+# gateway (20 tests, in-process fakes of rosbridge, trainer, camera; includes sign-in)
 cd physios/backend && python3 -m pytest -q tests
 
 # frontend unit tests (hardware-test sequencer against a simulated servo, router, URDF, format)
@@ -105,6 +150,10 @@ cd physios/frontend && npm run build
 cd physios/tests/e2e
 python3 devstack.py /tmp/physios-dev --seed      # terminal 1
 python3 physios_e2e.py /tmp/physios-dev /tmp/physios-shots
+
+# sign-in walk-through against a gateway started with a token
+PHYSIOS_PORT=8710 PHYSIOS_AUTH_TOKEN=lab-operator-2026 python3 -m physios_gateway   # in backend/
+python3 auth_e2e.py http://127.0.0.1:8710 lab-operator-2026
 ```
 
 The devstack runs the **real** PlanningService (behind a rosbridge stand-in that simulates the
