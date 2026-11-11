@@ -81,7 +81,7 @@ fallback or stop it with `docker stop physical_ai_manager`. PHYSIOS does not use
 | "Training service disconnected" | pam_trainer not running | `./start_physios.sh` starts it; if port 8766 is taken, `ss -ltnp \| grep 8766`, then check with `curl 127.0.0.1:8766/api/health` |
 | Cameras "No image … retrying" | web_video_server down or wrong topic | it starts with the bringup; select the robot type so the server loads camera topics |
 | No robots in the Home robot card | robot side down | as above |
-| Header robot select disabled | a task is running | stop the recording/inference first |
+| Robot card Confirm disabled on Home | a task is running | stop the recording/inference first |
 | Frontend page "gateway is running, frontend not built" | no `frontend/dist` | `./start_physios.sh --build` |
 | "port 8700 is used by another program" | another process | `PHYSIOS_PORT=8710 ./start_physios.sh` |
 | Host rollout load fails "No module named lerobot" | the run's environment lacks LeRobot | train/run in the LeRobot conda env |

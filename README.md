@@ -56,6 +56,7 @@ Same look, navigation and page layouts as the Physical AI Manager:
 | `documentation/03-API.md` | gateway API contract (`/api/v1`, `/ros`) |
 | `documentation/04-OPERATIONS.md` | installation, configuration, execution, troubleshooting, testing |
 | `documentation/05-STATUS.md` | what was verified, how, and what was not |
+| `documentation/06-PROJECT-REPORT.md` | full report: v4 phases, PHYSIOS, renaming, tests, commits, pending tasks |
 
 ## Safety
 
