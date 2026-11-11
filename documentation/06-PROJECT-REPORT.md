@@ -1,9 +1,9 @@
-# PHYSIOS and Physical AI Platform v4: Project Report
+# PHYSIOS 1.1.0 and Physical AI Platform v4: Project Report
 
 Date: 11 November 2026
 Repository: `physical_ai_tools` (ROBOTIS, Apache-2.0), branch `physical-ai-manager-v2`
 Upstream base: `dcaa3ab` (ROBOTIS v1.0.0 with rmw_zenoh, 30 October 2026)
-Current head: `f087aaa`
+PHYSIOS version: 1.1.0 (`physios/VERSION`) · PHYSIOS 1.1.0 commit: `2cea9e4`
 
 ---
 
@@ -22,7 +22,9 @@ The software has gone through three stages:
 |---|---|---|---|
 | Physical AI Manager v2 → v3 | 2–3 Nov | Planning, plan-driven recording, data review, local training, host rollout, evaluation log, dataset health, queue, storage | inside the old UI and `physical_ai_trainer`; consolidated in commit `492cf5b` |
 | **Physical AI Platform v4** (five phases) | 5 Nov | Training optimisation and custom robots | `pam_trainer` and the old UI, commits `3232e50` … `169333b` |
-| **PHYSIOS** | 6–11 Nov | A standalone application ("The Operating System for Physical Intelligence") with its own server and frontend. It reuses every back end unchanged and matches the Physical AI Manager's look and layout. | `physios/`, commits `ec8fbb2` … `f087aaa` |
+| **PHYSIOS 1.0** | 6–11 Nov | A standalone application ("The Operating System for Physical Intelligence") with its own server and frontend. It reuses every back end unchanged and matches the Physical AI Manager's look and layout. | `physios/`, commits `ec8fbb2` … `f087aaa` |
+| **PHYSIOS 1.1** | 11 Nov | Compact professional UI, optional operator sign-in, Docker deployment, validation report, IEEE paper, screenshots | `physios/`, commit `2cea9e4` |
+| Old UI compact theme | 11 Nov | The same compaction for the UI on http://localhost (the original app, renamed PHYSIOS) | `physical_ai_manager/`, commits `465c09a`, `7c9f117` |
 
 Everything is committed locally. The commits are **not pushed**: the sandbox cannot write to
 the ROBOTIS repository, so a push needs your own fork. **Nothing has been verified on the real
@@ -283,6 +285,40 @@ PHYSIOS was restyled to look and feel exactly like the existing Physical AI Mana
 
 ---
 
+### 4.4 PHYSIOS 1.1.0 (11 Nov, `2cea9e4`)
+
+The updated brief (Version 4) keeps the existing interface as the foundation and asks for
+professional optimisation, plus authentication, Docker deployment and research documentation.
+
+* **Compact professional UI** (`frontend/src/design/theme.css`, v1.1 layer at the end):
+  * same components and layouts, with less whitespace: 14 px cards with hairline borders, a
+    faint dot-grid canvas, 78 px rail, 30 px page titles, 44 px panel headers;
+  * compact buttons, inputs, tabs, tables and control bar; work areas up to 1760 px;
+  * service tiles carry a status accent.
+* **Responsive.** The console stacks below 1100 px, and below 640 px the rail becomes a bottom
+  navigation bar.
+* **Optional operator sign-in** (`backend/physios_gateway/services/auth.py`,
+  `frontend/src/app/AuthGate.tsx`):
+  * `PHYSIOS_AUTH_TOKEN` turns it on; it is required before the gateway may listen on the
+    network;
+  * HttpOnly SameSite=Strict session cookie; Bearer token for scripts;
+  * five failed attempts per address per minute block that address for a minute;
+  * Settings → Access shows the state and has Sign out.
+* **Docker** (`docker/`):
+  * image with the gateway and the built frontend; compose service with host networking;
+  * non-root uid 1000; repository and LeRobot cache mounted read-only; health check;
+  * `physios-docker.sh up|down|logs|status|build`.
+* **Documentation:** `07-VALIDATION.md` (requirements traceability and results),
+  `paper/physios-ieee.tex` / `.pdf` (IEEE conference format), 19 screenshots,
+  `CHANGELOG.md`, `VERSION`.
+
+### 4.5 The UI on http://localhost (old app, renamed)
+
+Your robot-PC screenshots of 11 Nov show the original application on port 80 with
+`physios_rename.patch` applied. That rename is now commit `465c09a`. The same compaction was
+applied to that UI in commit `7c9f117`, delivered as `ui-compact-theme.patch`. It applies on
+v4 + the rename, and the 26-step walk-through passes.
+
 ## 5. Implemented features (PHYSIOS, current)
 
 | Module | What you can do | Back end |
@@ -317,15 +353,20 @@ is not a hardware emergency stop, so keep the power switch or a hardware e-stop 
 
 ## 6. Testing results
 
-### 6.1 Current (11 November 2026, restyled PHYSIOS, commit `f087aaa`)
+### 6.1 Current (11 November 2026, PHYSIOS 1.1.0, commit `2cea9e4`)
+
+Full matrix and requirement traceability: `07-VALIDATION.md`.
 
 | Suite | Covers | Result |
 |---|---|---|
-| Gateway pytest (`physios/backend/tests`) | config, path traversal, Range, task-info typing, motion confirmation (HTTP 428, nothing reaches ROS), activity, ROS errors (unreachable/missing/timeout), health, trainer proxy, camera proxy, dataset files and export, SPA serving, `/ros` pipe | **17 passed** |
+| Gateway pytest (`physios/backend/tests`) | config, path traversal, Range, task-info typing, motion confirmation (HTTP 428, nothing reaches ROS), activity, ROS errors (unreachable/missing/timeout), health, trainer proxy, camera proxy, dataset files and export, SPA serving, `/ros` pipe, sign-in (sessions, Bearer, rate limit, expiry, remote binding needs a token) | **20 passed** |
 | Frontend vitest | hardware-test sequencer against a simulated servo (direction and distance, other joints held, inverted joint caught in the pre-hold, STOP, missing joint refused), plus helper tests | **8 passed** |
 | `tsc --noEmit` (strict) + `vite build` | type safety and production build | **clean** |
 | Browser walk-through (`tests/e2e/physios_e2e.py` against `devstack.py`) | real PlanningService behind a rosbridge stand-in with a simulated recorder; real pam_trainer with a stub `lerobot-train`; real gateway; simulated 3-DOF arm | **14/14 steps OK** |
-| Visual comparison | screenshots of Home, Record, Data, Planning, Training and Inference compared side by side with the old Physical AI Manager | matches |
+| Sign-in walk-through (`tests/e2e/auth_e2e.py`) | script install and Docker container | **5/5 and 5/5** |
+| Docker | `docker compose up -d --build` (substitute Ubuntu 24.04 + Python 3.12 base; Docker Hub unreachable here) | **healthy**, six service checks OK |
+| Training service / planning engine (unchanged v4) | pytest | **91 passed, 1 skipped / 45 passed** |
+| Old UI with compact theme | `physical_ai_manager/e2e/run_e2e.py` | **26/26** |
 
 The 14 walk-through steps:
 
@@ -345,7 +386,8 @@ The 14 walk-through steps:
 10. Host rollout: readiness, compatibility, editable envelope; nothing moves before Run.
 11. Robots: ZIP upload → validation → registered → 3D model.
 12. Robots: configuration → ROS checks (Stage 2) → live joints → authorised one-joint test
-    (Stage 3). 110 commands, none before Start; other joints held.
+    (Stage 3). 108 commands in the final run (110 in an earlier run; the count depends on
+    timing), none before Start; other joints held.
 13. Disconnected states: each module shows the back end's own hint, never empty or fake data.
 14. Settings: effective configuration from the gateway.
 
@@ -371,7 +413,7 @@ The v4 back ends are unchanged by PHYSIOS: `git diff 169333b` outside `physios/`
 
 ## 7. Git commits
 
-Branch `physical-ai-manager-v2`: 11 commits on top of upstream `main`, none pushed.
+Branch `physical-ai-manager-v2`: 16 commits on top of upstream `main`, none pushed.
 
 | Commit | Date | Message | Size |
 |---|---|---|---|
@@ -386,8 +428,12 @@ Branch `physical-ai-manager-v2`: 11 commits on top of upstream `main`, none push
 | `a0a2275` | 2026-11-06 | PHYSIOS frontend: new application shell, design system and all ten modules | 37 files, +8,377 / −3 |
 | `afb4d61` | 2026-11-06 | PHYSIOS: tests, start/stop scripts, configuration and documentation | 18 files, +1,476 / −12 |
 | `f087aaa` | 2026-11-11 | PHYSIOS: adopt the Physical AI Manager design language and layouts | 30 files, +1,716 / −1,110 |
+| `b66cfb1` | 2026-11-11 | PHYSIOS: project report (v4 phases, PHYSIOS, renaming, tests, commits, pending tasks) | docs |
+| `465c09a` | 2026-11-11 | Old UI: show the PHYSIOS name (as running on the robot PC) | 3 files |
+| `7c9f117` | 2026-11-11 | Old UI: compact professional theme | 15 files, +134 / −69 |
+| `2cea9e4` | 2026-11-11 | PHYSIOS 1.1.0: compact professional UI, optional sign-in, Docker deployment, validation and IEEE paper | 49 files, +1,265 / −33 |
 
-The report commit that adds this file follows `f087aaa`.
+This report's own update follows `2cea9e4`.
 
 ### Deliverables
 
@@ -397,7 +443,8 @@ The report commit that adds this file follows `f087aaa`.
 | `physical_ai_tools_v4_incremental_from_v3.patch` | v3 → v4 (`492cf5b..169333b`), 46 files | a v3 checkout |
 | `physios.patch` | v4 → PHYSIOS (binary-safe), only `physios/` and `.gitignore` | v4 (`169333b`); the robot PC is already there |
 | `physios.zip` | the `physios/` folder including the built frontend (no Node.js needed) | unzip into `physical_ai_tools/` |
-| `physios_rename.patch` | superseded; do not apply (undo with `git apply -R`) | — |
+| `physios_rename.patch` | renames the old UI (title, manifest, Home heading); applied on your robot PC, now commit `465c09a` | v4 |
+| `ui-compact-theme.patch` | compact professional theme for the old UI on http://localhost | v4 + rename |
 
 Apply exactly one of the two v4 patches. Applying both fails with "already exists in working
 directory". On 5 Nov the robot PC confirmed v4 is fully applied.
@@ -412,6 +459,19 @@ unzip -o ~/Nanditha/AI/physicalai/physios.zip      # or: git apply physios.patch
 cd physios
 ./stop_physios.sh
 ./start_physios.sh --with-ros                      # open http://127.0.0.1:8700
+```
+
+Docker alternative for the gateway (the training service then runs as before on the host):
+
+```bash
+cd /home/ihub/lerobot/physical_ai_tools/physios/docker && ./physios-docker.sh up
+```
+
+The old UI on http://localhost with the compact theme:
+
+```bash
+cd /home/ihub/lerobot/physical_ai_tools && git apply ui-compact-theme.patch
+cd docker && docker compose build --no-cache physical_ai_manager && docker compose up -d --force-recreate physical_ai_manager
 ```
 
 * `--with-ros` starts the Zenoh router and then the physical_ai_server bringup inside the
@@ -461,7 +521,8 @@ Common fixes seen on the robot PC:
 
 ### Not yet exercised
 
-- [ ] `start_physios.sh --with-ros` docker exec steps (no Docker in the sandbox).
+- [ ] `start_physios.sh --with-ros` docker exec steps (no physical_ai_server container in the sandbox).
+- [ ] The Docker image on the robot PC with the default `python:3.12-slim` base.
 - [ ] Dataset health probe in a real LeRobot environment.
 - [ ] Hugging Face and GitHub publishing with real accounts.
 
@@ -477,7 +538,7 @@ Common fixes seen on the robot PC:
       `physical_ai_server/config/` by hand).
 - [ ] Block Training on Stage 4 for custom robots (today it is advisory).
 - [ ] A watchdog so a hardware test interrupted by a closed tab sends a final hold.
-- [ ] Authentication, if PHYSIOS should ever be reachable beyond localhost.
+- [x] Authentication (1.1.0: optional operator token; per-user accounts and TLS are not included).
 - [ ] Load three.js (≈630 kB) more lazily; today it loads only on the Robots page.
 
 ### Known limitations
@@ -497,7 +558,12 @@ Common fixes seen on the robot PC:
 |---|---|
 | `physios/README.md` | overview, quick start, modules, safety |
 | `physios/documentation/01-ANALYSIS.md` | repository and patch analysis, dependency map |
-| `physios/documentation/02-ARCHITECTURE.md` | architecture, design system and navigation, module map, safety model |
+| `physios/documentation/02-ARCHITECTURE.md` | architecture, layers, authentication, deployment, design system and navigation, module map, safety model |
+| `physios/documentation/07-VALIDATION.md` | requirements traceability, automated test results, deployment validation |
+| `physios/documentation/paper/physios-ieee.pdf` | IEEE-format technical paper (LaTeX source alongside) |
+| `physios/documentation/screenshots/` | 19 screenshots of 1.1.0 |
+| `physios/docker/` | Dockerfile, compose file, `physios-docker.sh` |
+| `physios/CHANGELOG.md`, `physios/VERSION` | version information |
 | `physios/documentation/03-API.md` | gateway API (`/api/v1`, `/ros`) |
 | `physios/documentation/04-OPERATIONS.md` | install, configure, run, troubleshoot, test |
 | `physios/documentation/05-STATUS.md` | what was verified, how, and what was not |
