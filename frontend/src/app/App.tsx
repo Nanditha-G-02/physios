@@ -5,39 +5,40 @@ import { RouterProvider, match, useRouter } from './router';
 import { Shell } from './Shell';
 import { SystemProvider } from './system';
 
-const Dashboard = lazy(() => import('@/modules/dashboard/Dashboard'));
+const Home = lazy(() => import('@/modules/home/Home'));
 const Planning = lazy(() => import('@/modules/planning/PlanningStudio'));
 const Recording = lazy(() => import('@/modules/recording/RecordingStudio'));
 const Datasets = lazy(() => import('@/modules/datasets/DatasetLibrary'));
 const Training = lazy(() => import('@/modules/training/TrainingStudio'));
-const Optimization = lazy(() => import('@/modules/optimization/OptimizationStudio'));
-const Evaluation = lazy(() => import('@/modules/evaluation/EvaluationStudio'));
 const Inference = lazy(() => import('@/modules/inference/InferenceStudio'));
-const Rollout = lazy(() => import('@/modules/rollout/RolloutStudio'));
 const Robots = lazy(() => import('@/modules/robots/RobotManagement'));
 const Settings = lazy(() => import('@/modules/settings/Settings'));
 
 const ROUTES: [string, (p: Record<string, string>) => ReactNode][] = [
-  ['/', () => <Dashboard />],
+  ['/', () => <Home />],
   ['/planning', () => <Planning />],
   ['/planning/:id', (p) => <Planning planId={p.id} />],
   ['/recording', () => <Recording />],
   ['/datasets', () => <Datasets />],
   ['/datasets/:owner/:name', (p) => <Datasets datasetId={`${p.owner}/${p.name}`} />],
-  ['/training', () => <Training />],
+  ['/training', () => <Training view="runs" />],
   ['/training/new', () => <Training view="new" />],
   ['/training/runs/:id', (p) => <Training runId={p.id} />],
-  ['/optimization', () => <Optimization />],
-  ['/optimization/runs/:runId', (p) => <Optimization runId={p.runId} />],
-  ['/optimization/sessions/:sid', (p) => <Optimization sessionId={p.sid} />],
-  ['/evaluation', () => <Evaluation />],
-  ['/inference', () => <Inference />],
-  ['/rollout', () => <Rollout />],
+  ['/training/queue', () => <Training view="queue" />],
+  ['/training/storage', () => <Training view="storage" />],
+  ['/training/optimize', () => <Training view="optimize" />],
+  ['/training/optimize/runs/:runId', (p) => <Training view="optimize" optRunId={p.runId} />],
+  ['/training/optimize/sessions/:sid', (p) => <Training view="optimize" sessionId={p.sid} />],
+  ['/training/evaluate', () => <Training view="evaluate" />],
+  ['/training/compare', () => <Training view="compare" />],
+  ['/inference', () => <Inference view="check" />],
+  ['/inference/rollout', () => <Inference view="rollout" />],
+  ['/inference/container', () => <Inference view="container" />],
   ['/robots', () => <Robots />],
   ['/robots/new', () => <Robots view="new" />],
   ['/robots/:id', (p) => <Robots robotId={p.id} />],
   ['/settings', () => <Settings />],
-];
+]
 
 function Routes() {
   const { loc } = useRouter();

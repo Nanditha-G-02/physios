@@ -1,4 +1,4 @@
-# PHYSIOS: verification status (2026-11-06)
+# PHYSIOS: verification status (2026-11-11)
 
 ## Verified here
 
@@ -13,8 +13,8 @@
 
 E2E steps:
 
-1. Dashboard: six live service checks OK.
-2. Header robot type set on physical_ai_server.
+1. Home: six live service checks OK in the overview.
+2. Home: robot selected and confirmed on physical_ai_server; workflow unlocked.
 3. Planning: create, generate, validate, apply fixes, approve, activate.
 4. Recording: plan-mode take through `/task/command`, review, accept.
 5. Datasets: library, video playback through the gateway, reject an episode, gzip export.
@@ -24,9 +24,14 @@ E2E steps:
 9. Inference: compatibility and envelope from the recorded data, dry-run load. It fails because no torch is installed here, and the UI shows the worker log.
 10. Rollout: readiness, compatibility, editable envelope.
 11. Robots: zip upload, validation, register, 3D view.
-12. Robots: configuration, ROS checks (Stage 2), live joints, authorised one-joint test (Stage 3). 108 commands, none before Start; other joints held.
+12. Robots: configuration, ROS checks (Stage 2), live joints, authorised one-joint test (Stage 3). 110 commands, none before Start; other joints held.
 13. Disconnected states.
-14. Settings and themes.
+14. Settings: effective configuration.
+
+The UI was restyled on 2026-11-11 to the Physical AI Manager design (tokens, rail, Home,
+workbench and console layouts, Training and Inference tabs). The e2e above was re-run on the
+restyled UI; side-by-side screenshots against the old UI were compared for Home, Record,
+Data, Planning, Training and Inference.
 
 ## Not verified (needs the robot PC)
 

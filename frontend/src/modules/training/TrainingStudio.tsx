@@ -11,34 +11,58 @@ import {
   Segmented, Select, StatusBadge, Switch, Tabs, TextArea, fmt, useToast,
 } from '@/design/ui';
 import { useLoad } from '@/hooks/data';
-import { Page, Requires } from '../shared';
+import { Page, Requires, RouteTabs } from '../shared';
+import { useAvailability } from '@/app/system';
+import { Compare, Diagnosis, OptimizeOverview, SessionDetail } from '../optimization/OptimizationStudio';
+import { EvaluationBody } from '../evaluation/EvaluationStudio';
 
-export default function TrainingStudio({ view, runId }: { view?: 'new'; runId?: string }) {
+export type TrainingView = 'runs' | 'new' | 'queue' | 'optimize' | 'evaluate' | 'compare' | 'storage';
+
+/** 05 · Training: local training plus its Optimize / Evaluate / Compare tabs, laid out like
+ *  the Physical AI Manager training page. */
+export default function TrainingStudio({ view = 'runs', runId, optRunId, sessionId }: { view?: TrainingView; runId?: string; optRunId?: string; sessionId?: string }) {
+  const av = useAvailability();
+  const runs = useLoad(() => trainer.runs(), [av.trainer], 10000, av.trainer);
+  const n = runs.data?.runs?.length;
+  const active: TrainingView = runId ? 'runs' : view;
+  const tabs: [TrainingView, string, string][] = [
+    ['new', '/training/new', 'New training'], ['runs', '/training', `Runs${n ? ` (${n})` : ''}`], ['queue', '/training/queue', 'Queue'],
+    ['optimize', '/training/optimize', 'Optimize'], ['evaluate', '/training/evaluate', 'Evaluate'], ['compare', '/training/compare', 'Compare'], ['storage', '/training/storage', 'Storage'],
+  ];
+  const body = runId ? <RunDetail id={runId} />
+    : view === 'new' ? <NewTraining />
+    : view === 'queue' ? <QueuePanel />
+    : view === 'storage' ? <StoragePanel />
+    : view === 'optimize' ? (sessionId ? <SessionDetail id={sessionId} /> : optRunId ? <Diagnosis id={optRunId} /> : <OptimizeOverview />)
+    : view === 'evaluate' ? <EvaluationBody />
+    : view === 'compare' ? <CompareRuns />
+    : <RunList />;
   return (
-    <Page>
-      <Requires service="trainer" what="Training">
-        {runId ? <RunDetail id={runId} /> : view === 'new' ? <NewTraining /> : <RunList />}
-      </Requires>
+    <Page code="05" label="Training" title="Train a policy on this PC"
+      intro="Uses your recorded datasets and the LeRobot already installed in a local environment. Every command is shown before it runs; logs and checkpoints are kept on disk."
+      actions={!av.known ? null : av.trainer ? <span className="badge badge-ok">service on 127.0.0.1</span> : <span className="badge badge-danger">service offline</span>}
+      tabs={<RouteTabs items={tabs.map(([id, to, label]) => ({ to, label, active: active === id }))} />}>
+      <Requires service="trainer" what="Training">{body}</Requires>
     </Page>
   );
+}
+
+function CompareRuns() {
+  const runs = useLoad(() => trainer.runs(), [], 0);
+  const list = (runs.data?.runs || []).filter((r: any) => r.progress?.step > 0);
+  if (!runs.data) return <Loading />;
+  return <Compare runs={list} initial={list.slice(0, 2).map((r: any) => r.id)} />;
 }
 
 // ------------------------------------------------------------------------------- runs
 function RunList() {
   const runs = useLoad(() => trainer.runs(), [], 4000);
-  const queue = useLoad(() => trainer.queue(), [], 6000);
-  const storage = useLoad(() => trainer.storage(), [], 0);
   const [q, setQ] = useState('');
   const list: any[] = (runs.data?.runs || []).filter((r: any) => !q || `${r.job_name} ${r.policy} ${r.dataset}`.toLowerCase().includes(q.toLowerCase()));
-  const items: any[] = queue.data?.items || [];
-  const ck: any[] = storage.data?.checkpoints || [];
   return (
     <div className="stack">
-      <div className="row-between">
-        <p className="page-intro" style={{ margin: 0 }}>Train policies on this PC with your LeRobot environment. Runs survive closing the browser; logs, metrics and checkpoints stay on disk.</p>
-        <div className="row"><Input placeholder="Filter runs…" value={q} onChange={(e) => setQ(e.target.value)} style={{ width: 220 }} /><Link to="/training/new" className="btn btn-primary" data-action="new-training"><I.plus />New training</Link></div>
-      </div>
-      <Panel title="Training runs" sub={`${list.length} run(s)`} flush>
+      <Panel title="Training runs" sub={`${list.length} run(s) · they survive closing the browser`} flush
+        actions={<><Input placeholder="Filter runs…" value={q} onChange={(e) => setQ(e.target.value)} style={{ width: 200, padding: '5px 12px' }} /><Link to="/training/new" className="btn btn-sm btn-primary" data-action="new-training">+ New training</Link></>}>
         {runs.error ? <ErrorState error={runs.error} onRetry={runs.reload} /> : !runs.data ? <div style={{ padding: 16 }}><Loading rows={4} /></div> : !list.length ? <Empty icon={<I.training />} title="No training runs yet" action={<Link to="/training/new" className="btn btn-sm">Start a training</Link>} /> : (
           <div className="table-wrap"><table className="table">
             <thead><tr><th>Run</th><th>Status</th><th>Policy</th><th>Dataset</th><th style={{ width: 200 }}>Progress</th><th className="right">Loss</th><th>Started</th></tr></thead>
@@ -59,18 +83,33 @@ function RunList() {
           </table></div>
         )}
       </Panel>
-      <div className="grid g2">
-        <Panel title="Queue" sub="Trainings start one after another; changed commands wait for review">
-          {!items.length ? <Empty icon={<I.clock />} title="Queue is empty" /> : <div className="list" style={{ margin: -16 }}>{items.map((it) => (
-            <div key={it.id} className="list-item"><div className="grow"><div>{it.job_name}</div><div className="tiny muted">{it.status} {it.reason ? `· ${it.reason}` : ''}</div></div><StatusBadge status={it.status} />
-              {['queued', 'needs_review', 'held'].includes(it.status) && <Button size="sm" variant="ghost" onClick={() => trainer.queueAction(it.id, 'cancel').then(queue.reload)}>Cancel</Button>}</div>
-          ))}</div>}
-        </Panel>
-        <Panel title="Checkpoint storage" sub={storage.data ? `${ck.length} checkpoint(s), ${fmt.bytes(ck.reduce((a, c) => a + (c.bytes || 0), 0))}` : undefined}>
-          {!storage.data ? <Loading rows={2} /> : <div className="stack-sm small">{ck.slice(0, 6).map((c) => <div key={c.path} className="row-between"><span className="ellipsis">{c.job_name} · step {c.step}</span><span className="row" style={{ gap: 8 }}>{c.protected ? <Badge tone="ok">{c.reason}</Badge> : <span className="muted">{c.reason}</span>}<span className="num">{fmt.bytes(c.bytes)}</span></span></div>)}{!ck.length && <span className="muted">No checkpoints on disk.</span>}</div>}
-        </Panel>
-      </div>
     </div>
+  );
+}
+
+function QueuePanel() {
+  const queue = useLoad(() => trainer.queue(), [], 6000);
+  const items: any[] = queue.data?.items || [];
+  return (
+    <Panel title="Queue" sub="Trainings start one after another; changed commands wait for review" flush>
+      {queue.error ? <ErrorState error={queue.error} /> : !items.length ? <Empty icon={<I.clock />} title="Queue is empty">Add a training to the queue from the review step of New training.</Empty> : <div className="list">{items.map((it) => (
+        <div key={it.id} className="list-item"><div className="grow"><div>{it.job_name}</div><div className="tiny muted">{it.status} {it.reason ? `· ${it.reason}` : ''}</div></div><StatusBadge status={it.status} />
+          {['queued', 'needs_review', 'held'].includes(it.status) && <Button size="sm" variant="ghost" onClick={() => trainer.queueAction(it.id, 'cancel').then(queue.reload)}>Cancel</Button>}</div>
+      ))}</div>}
+    </Panel>
+  );
+}
+
+function StoragePanel() {
+  const storage = useLoad(() => trainer.storage(), [], 0);
+  const ck: any[] = storage.data?.checkpoints || [];
+  return (
+    <Panel title="Checkpoint storage" sub={storage.data ? `${ck.length} checkpoint(s), ${fmt.bytes(ck.reduce((a, c) => a + (c.bytes || 0), 0))}` : undefined} flush>
+      {storage.error ? <ErrorState error={storage.error} /> : !storage.data ? <div style={{ padding: 16 }}><Loading rows={3} /></div> : !ck.length ? <Empty title="No checkpoints on disk" /> : (
+        <div className="table-wrap"><table className="table"><thead><tr><th>Run</th><th className="right">Step</th><th>Kept because</th><th className="right">Size</th><th>Path</th></tr></thead>
+          <tbody>{ck.map((c) => <tr key={c.path}><td>{c.job_name}</td><td className="right num">{fmt.num(c.step)}</td><td>{c.protected ? <span className="badge badge-ok">{c.reason}</span> : <span className="muted small">{c.reason}</span>}</td><td className="right num">{fmt.bytes(c.bytes)}</td><td className="mono tiny ellipsis" style={{ maxWidth: 360 }} title={c.path}>{c.path}</td></tr>)}</tbody></table></div>
+      )}
+    </Panel>
   );
 }
 
@@ -282,7 +321,7 @@ export function RunDetail({ id }: { id: string }) {
           {r.status === 'training' && <Button size="sm" icon={<I.pause />} busy={busy === 'pause'} onClick={() => act('pause')}>Pause</Button>}
           {r.status === 'paused' && <Button size="sm" icon={<I.play />} busy={busy === 'resume'} onClick={() => act('resume')}>Resume</Button>}
           {active && <Button size="sm" variant="danger" icon={<I.stop />} onClick={() => setConfirm('stop')}>Stop</Button>}
-          <Link to={`/optimization/runs/${id}`} className="btn btn-sm"><I.optimize />Diagnose</Link>
+          <Link to={`/training/optimize/runs/${id}`} className="btn btn-sm"><I.optimize />Diagnose</Link>
         </div>
       </div>
       {r.error && <Callout tone="danger" title="Run error">{r.error}</Callout>}

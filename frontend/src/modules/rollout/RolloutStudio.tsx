@@ -6,19 +6,19 @@
 // Nothing moves without the operator's explicit start; the page sends a heartbeat while the
 // arm moves and the worker holds position if it stops arriving.
 import { useEffect, useRef, useState } from 'react';
-import { PHASE, ros } from '@/api/gateway';
+import type { ReactNode } from 'react';
+import { PHASE, PHASES, ros } from '@/api/gateway';
 import { trainer } from '@/api/trainer';
 import { Link } from '@/app/router';
 import { useAvailability, useSystem } from '@/app/system';
 import { I } from '@/design/icons';
 import {
-  Badge, Button, Callout, Confirm, Empty, Field, Input, KV, Loading, NumberInput, Panel, Segmented, Select, StatusBadge,
+  Badge, Button, Callout, Confirm, Empty, Field, Input, KV, Loading, NumberInput, Panel, Select, StatusBadge,
   TextArea, fmt, useToast,
 } from '@/design/ui';
 import { useLoad, useNow } from '@/hooks/data';
-import { CameraView, LiveJoints, Page, Requires } from '../shared';
-import { Logs } from '../inference/InferenceStudio';
-import { PredictionTable, ROLLOUT_ACTIVE, buildRequest, useCheckpointChoice, useRobotConfig, useRollout } from './rolloutShared';
+import { BigButton, Console, ControlBar, LiveJoints, RobotCameras, SideSec } from '../shared';
+import { Logs, PredictionTable, ROLLOUT_ACTIVE, buildRequest, useCheckpointChoice, useRobotConfig, useRollout } from './rolloutShared';
 
 const CHECKS = [
   'The workspace is clear of people and loose objects',
@@ -27,15 +27,6 @@ const CHECKS = [
   'The camera positions match the recorded training data',
 ];
 
-export default function RolloutStudio() {
-  const [engine, setEngine] = useState<'host' | 'robot'>('host');
-  return (
-    <Page intro="Run a trained model on the physical robot under supervision. Readiness and compatibility are checked first; the robot only moves after you start it, and Stop / Emergency stop are always available."
-      actions={<Segmented value={engine} onChange={setEngine} options={[{ value: 'host', label: 'Model trained here' }, { value: 'robot', label: 'Policy on the robot side' }]} />}>
-      {engine === 'host' ? <Requires service="trainer" what="Host rollout"><HostRollout /></Requires> : <Requires service="ros" what="On-robot inference"><RobotInference /></Requires>}
-    </Page>
-  );
-}
 
 function useReadiness() {
   const { robotType, heartbeatAt, taskStatus } = useSystem();
@@ -55,16 +46,16 @@ function useReadiness() {
 
 function Readiness({ r }: { r: ReturnType<typeof useReadiness> }) {
   return (
-    <Panel title="Robot readiness" actions={<Badge tone={r.ok ? 'ok' : 'danger'} dot>{r.ok ? 'ready' : 'not ready'}</Badge>} data-testid="readiness">
+    <SideSec label="Robot readiness" actions={<Badge tone={r.ok ? 'ok' : 'danger'} dot>{r.ok ? 'ready' : 'not ready'}</Badge>} data-testid="readiness">
       <div className="stack-sm">{r.items.map((i) => (
-        <div key={i.label} className="row-between small" data-ready={i.ok}><span className="row" style={{ gap: 8 }}>{i.ok ? <I.ok width={16} height={16} style={{ color: 'var(--ok)' }} /> : <I.alert width={16} height={16} style={{ color: 'var(--danger)' }} />}{i.label}</span><span className="muted tiny ellipsis" style={{ maxWidth: 200 }}>{i.detail}</span></div>
+        <div key={i.label} className="row-between small" data-ready={i.ok}><span className="row" style={{ gap: 8 }}>{i.ok ? <I.ok width={16} height={16} style={{ color: 'var(--ok)' }} /> : <I.alert width={16} height={16} style={{ color: 'var(--danger)' }} />}{i.label}</span><span className="muted tiny ellipsis" style={{ maxWidth: 160 }}>{i.detail}</span></div>
       ))}</div>
       {r.custom && <div className="mt"><Link to={`/robots/${r.custom.id}`} className="btn btn-sm btn-ghost">Custom robot readiness<I.chevron /></Link></div>}
-    </Panel>
+    </SideSec>
   );
 }
 
-function HostRollout() {
+export function HostRollout({ tabs }: { tabs?: ReactNode }) {
   const toast = useToast();
   const ready = useReadiness();
   const robot = useRobotConfig();
@@ -106,78 +97,100 @@ function HostRollout() {
   const cams = Object.entries(r.data?.config?.cameras || prep?.config?.cameras || {}) as [string, string][];
   const names: string[] = r.data?.config?.action_names || prep?.config?.action_names || [];
 
-  return (
-    <div className="grid g-side">
-      <div className="stack">
-        {active && ROLLOUT_ACTIVE.includes(status || '') ? (
-          <Panel title={moving ? 'Robot moving under policy control' : `Rollout ${status?.replace(/_/g, ' ')}`} sub={`${r.data?.config?.policy} · step ${r.data?.config?.step} · speed ${Math.round(100 * (r.data?.config?.speed_factor || 0))}% · max ${r.data?.config?.max_duration_s}s`}
-            actions={<StatusBadge status={status} />} data-testid="rollout-live" data-status={status}>
-            <div className="stack">
-              <div className="row" style={{ justifyContent: 'space-between' }}>
-                <div className="row">
-                  {(status === 'ready' || status === 'paused') && <Button variant="primary" size="lg" icon={<I.play />} disabled={!ready.ok} onClick={() => setConfirm('run')} data-action="run">Run on robot</Button>}
-                  {moving && <Button size="lg" icon={<I.pause />} busy={busy === 'pause'} onClick={() => cmd('pause')}>Pause (hold)</Button>}
-                  <Button size="lg" icon={<I.stop />} busy={busy === 'stop'} onClick={() => cmd('stop')} data-action="stop-rollout">Stop</Button>
-                </div>
-                <button className="estop" onClick={() => cmd('estop')} data-action="estop">EMERGENCY STOP</button>
-              </div>
-              {live.pause_reason && <Callout tone="warn" title="Holding position">{live.pause_reason}</Callout>}
-              {!ready.ok && status === 'ready' && <Callout tone="danger" title="Robot not ready">Fix the readiness items before running.</Callout>}
-              <div className="grid g4">
-                <div className="panel stat"><span className="label">Steps</span><span className="stat-value">{live.step ?? 0}</span></div>
-                <div className="panel stat"><span className="label">Rate</span><span className="stat-value">{live.rate_hz ?? '—'}<small>Hz</small></span></div>
-                <div className="panel stat"><span className="label">Elapsed</span><span className="stat-value">{fmt.dur(live.elapsed_s)}</span></div>
-                <div className="panel stat"><span className="label">Clamped</span><span className="stat-value">{Object.values(live.clamps || {}).reduce((a: number, b: any) => a + Number(b || 0), 0)}</span></div>
-              </div>
-              {(live.last || live.preview) && <PredictionTable names={names} state={(live.last || live.preview).state} raw={(live.last || live.preview).raw} safe={(live.last || live.preview).safe} notes={(live.last || live.preview).notes} />}
+  const isActive = !!active && ROLLOUT_ACTIVE.includes(status || '');
+  const followerTopic = robot.params?.joint_topic_list ? (robot.params.joint_topic_list.find((t: string) => t.startsWith('follower')) || 'follower:/joint_states').split(':').slice(1).join(':') : null;
+  const elapsed = Number(live.elapsed_s || 0);
+  const maxD = Number(r.data?.config?.max_duration_s || maxDur);
+
+  const center = (
+    <>
+      {isActive && moving && <Callout tone="warn" title="Robot moving under policy control">Watch the robot. Stop holds position; EMERGENCY STOP kills the worker.</Callout>}
+      <RobotCameras extra={cams} recording={moving} />
+      {isActive && (
+        <Panel title={moving ? 'Robot moving under policy control' : `Rollout ${status?.replace(/_/g, ' ')}`} sub={`${r.data?.config?.policy} · step ${r.data?.config?.step} · speed ${Math.round(100 * (r.data?.config?.speed_factor || 0))}% · max ${r.data?.config?.max_duration_s}s`}
+          actions={<StatusBadge status={status} />} data-testid="rollout-live" data-status={status}>
+          <div className="stack">
+            {live.pause_reason && <Callout tone="warn" title="Holding position">{live.pause_reason}</Callout>}
+            {!ready.ok && status === 'ready' && <Callout tone="danger" title="Robot not ready">Fix the readiness items before running.</Callout>}
+            <div className="grid g4">
+              <div className="panel stat"><span className="label">Steps</span><span className="stat-value">{live.step ?? 0}</span></div>
+              <div className="panel stat"><span className="label">Rate</span><span className="stat-value">{live.rate_hz ?? '—'}<small>Hz</small></span></div>
+              <div className="panel stat"><span className="label">Elapsed</span><span className="stat-value">{fmt.dur(live.elapsed_s)}</span></div>
+              <div className="panel stat"><span className="label">Clamped</span><span className="stat-value">{Object.values(live.clamps || {}).reduce((a: number, b: any) => a + Number(b || 0), 0)}</span></div>
             </div>
-          </Panel>
-        ) : (
-          <Panel title="Model and settings">
-            <div className="stack">
-              {ck.picker}
-              <Field label="Task instruction"><TextArea rows={2} value={task} onChange={(e) => setTask(e.target.value)} /></Field>
-              <div className="grid g2">
-                <Field label={`Speed: ${Math.round(speed * 100)}% of the demonstrations`} hint="Start low; the worker also limits each step"><input type="range" min={0.05} max={1} step={0.05} value={speed} onChange={(e) => setSpeed(Number(e.target.value))} /></Field>
-                <Field label="Maximum duration (s)"><NumberInput value={maxDur} onChange={(v) => setMaxDur(v ?? 45)} /></Field>
-              </div>
-              <Button variant="primary" disabled={!ck.run || !ck.step} busy={busy === 'check'} onClick={check} data-action="check-rollout">Check compatibility and limits</Button>
-            </div>
-          </Panel>
-        )}
-        {prep && !active && (
-          <Panel title="Compatibility" actions={<Badge tone={prep.ok ? 'ok' : 'danger'}>{prep.ok ? 'compatible' : `${prep.errors.length} problem(s)`}</Badge>}>
-            <div className="stack">
-              {prep.errors.map((e: string) => <Callout key={e} tone="danger">{e}</Callout>)}
-              {prep.warnings.map((e: string) => <Callout key={e} tone="warn">{e}</Callout>)}
-              <KV items={[['Robot type', `${prep.config.robot_type} (active: ${robot.robotType || '—'})`], ['Reads', `${prep.config.state_topic} + ${Object.keys(prep.config.cameras).length} camera(s)`], ['Commands', prep.config.action_topic], ['Joints', prep.config.action_names.join(', ')], ['Device', prep.config.device]]} />
-              <LimitsEditor limits={limits || prep.config.limits} proposal={prep.proposal} source={prep.limits_source} onChange={setLimits} datasetId={prep.config.dataset_id} />
-              <div className="row"><Button onClick={check} busy={busy === 'check'} icon={<I.refresh />}>Re-check with these limits</Button>
-                <Button variant="primary" disabled={!prep.ok || !!prep.busy || !ready.ok} onClick={() => setConfirm('load')} data-action="load-rollout">Load model (robot stays still)</Button></div>
-              {!ready.ok && <span className="small" style={{ color: 'var(--danger)' }}>The robot is not ready (see readiness).</span>}
-            </div>
-          </Panel>
-        )}
-        {outcome && finished.data && <OutcomeForm ro={finished.data} onDone={() => { setOutcome(false); lastId.current = null; }} />}
-        <Logs id={active?.id} />
-      </div>
-      <div className="stack">
-        <Readiness r={ready} />
-        <Panel title="Follower arm">{robot.params?.joint_topic_list ? <LiveJoints topic={(robot.params.joint_topic_list.find((t: string) => t.startsWith('follower')) || 'follower:/joint_states').split(':').slice(1).join(':')} /> : <span className="small muted">Robot configuration not available.</span>}</Panel>
-        {cams.length > 0 && <Panel title="Cameras"><div className="stack">{cams.map(([k, t]) => <CameraView key={k} topic={t} label={k.split('.').pop()} quality={40} recording={moving} />)}</div></Panel>}
-        <Panel title="Recent rollouts" flush>
-          {(list.data?.rollouts || []).length ? <div className="list">{list.data.rollouts.slice(0, 8).map((x: any) => (
-            <div key={x.id} className="list-item"><div className="grow"><div className="small">{x.config?.policy} · step {x.config?.step}</div><div className="tiny muted">{fmt.ago(x.created_at)} · {x.end_reason || x.error || ''}</div></div><StatusBadge status={x.status} /></div>
-          ))}</div> : <Empty icon={<I.rollout />} title="No rollouts yet" />}
+            {(live.last || live.preview) && <PredictionTable names={names} state={(live.last || live.preview).state} raw={(live.last || live.preview).raw} safe={(live.last || live.preview).safe} notes={(live.last || live.preview).notes} />}
+          </div>
         </Panel>
-      </div>
+      )}
+      {prep && !active && (
+        <Panel title="Compatibility" actions={<Badge tone={prep.ok ? 'ok' : 'danger'}>{prep.ok ? 'compatible' : `${prep.errors.length} problem(s)`}</Badge>}>
+          <div className="stack">
+            {prep.errors.map((e: string) => <Callout key={e} tone="danger">{e}</Callout>)}
+            {prep.warnings.map((e: string) => <Callout key={e} tone="warn">{e}</Callout>)}
+            <KV items={[['Robot type', `${prep.config.robot_type} (active: ${robot.robotType || '—'})`], ['Reads', `${prep.config.state_topic} + ${Object.keys(prep.config.cameras).length} camera(s)`], ['Commands', prep.config.action_topic], ['Joints', prep.config.action_names.join(', ')], ['Device', prep.config.device]]} />
+            <LimitsEditor limits={limits || prep.config.limits} proposal={prep.proposal} source={prep.limits_source} onChange={setLimits} datasetId={prep.config.dataset_id} />
+            <div className="row"><Button onClick={check} busy={busy === 'check'} icon={<I.refresh />}>Re-check with these limits</Button><span className="small muted">Then press <b>Load</b> in the control bar; the robot stays still until <b>Run</b>.</span></div>
+            {!ready.ok && <span className="small" style={{ color: 'var(--danger)' }}>The robot is not ready (see readiness).</span>}
+          </div>
+        </Panel>
+      )}
+      {outcome && finished.data && <OutcomeForm ro={finished.data} onDone={() => { setOutcome(false); lastId.current = null; }} />}
+      <Logs id={active?.id} />
+    </>
+  );
+
+  const side = (
+    <>
+      <SideSec label="Task information">
+        {isActive ? <KV items={[['Model', r.data?.config?.policy], ['Checkpoint', `step ${fmt.num(r.data?.config?.step)}`], ['Speed', `${Math.round(100 * (r.data?.config?.speed_factor || 0))}%`], ['Max duration', `${r.data?.config?.max_duration_s} s`]]} /> : (
+          <div className="stack">
+            {ck.picker}
+            <Field label="Task instruction"><TextArea rows={2} value={task} onChange={(e) => setTask(e.target.value)} /></Field>
+            <Field label={`Speed: ${Math.round(speed * 100)}% of the demonstrations`} hint="Start low; the worker also limits each step"><input type="range" min={0.05} max={1} step={0.05} value={speed} onChange={(e) => setSpeed(Number(e.target.value))} /></Field>
+            <Field label="Maximum duration (s)"><NumberInput value={maxDur} onChange={(v) => setMaxDur(v ?? 45)} /></Field>
+          </div>
+        )}
+      </SideSec>
+      <Readiness r={ready} />
+      <SideSec label="Follower arm">{followerTopic ? <LiveJoints topic={followerTopic} /> : <span className="small muted">Robot configuration not available.</span>}</SideSec>
+      <SideSec label="Recent rollouts">
+        {(list.data?.rollouts || []).length ? <div className="list">{list.data.rollouts.slice(0, 8).map((x: any) => (
+          <div key={x.id} className="list-item"><div className="grow"><div className="small">{x.config?.policy} · step {x.config?.step}</div><div className="tiny muted">{fmt.ago(x.created_at)} · {x.end_reason || x.error || ''}</div></div><StatusBadge status={x.status} /></div>
+        ))}</div> : <Empty icon={<I.rollout />} title="No rollouts yet" />}
+      </SideSec>
+    </>
+  );
+
+  const bar = (
+    <ControlBar
+      buttons={<>
+        <BigButton tone={!active && !prep?.ok ? 'primary' : undefined} icon={<I.check />} disabled={!!active || !ck.run || !ck.step} busy={busy === 'check'} onClick={check} data-action="check-rollout">Check</BigButton>
+        <BigButton tone={!active && prep?.ok ? 'primary' : undefined} icon={<I.download />} disabled={!!active || !prep?.ok || !!prep?.busy || !ready.ok} busy={busy === 'load'} onClick={() => setConfirm('load')} data-action="load-rollout" title="Load the model; the robot stays still">Load</BigButton>
+        {moving
+          ? <BigButton icon={<I.pause />} busy={busy === 'pause'} onClick={() => cmd('pause')} title="Pause and hold position">Pause</BigButton>
+          : <BigButton tone={status === 'ready' || status === 'paused' ? 'primary' : undefined} icon={<I.play />} disabled={!(status === 'ready' || status === 'paused') || !ready.ok} onClick={() => setConfirm('run')} data-action="run">Run</BigButton>}
+        <BigButton icon={<I.stop />} disabled={!isActive} busy={busy === 'stop'} onClick={() => cmd('stop')} data-action="stop-rollout">Stop</BigButton>
+        <BigButton tone="danger" icon={<I.alert />} disabled={!active} onClick={() => cmd('estop')} data-action="estop" title="Kill the rollout worker immediately">E-STOP</BigButton>
+      </>}
+      title={isActive ? (moving ? 'Running on robot' : String(status).replace(/_/g, ' ')) : prep ? (prep.ok ? 'Ready to load' : 'Not compatible') : 'No model loaded'}
+      dot={moving ? 'var(--err)' : isActive ? 'var(--warn)' : prep?.ok ? 'var(--ok)' : 'var(--ink-4)'}
+      time={<>{Math.round(elapsed)} <span className="muted" style={{ fontSize: 13 }}>/ {maxD} s</span></>}
+      pct={isActive ? (100 * elapsed) / Math.max(1, maxD) : 0} barColor={moving ? 'var(--err)' : 'var(--ink)'}
+      hint={moving ? 'The robot moves under policy control. Keep this page open: without its heartbeat the robot holds position.' : isActive ? (status === 'ready' ? 'Model loaded, robot still. Press Run to start (checklist and typed confirmation).' : live.pause_reason || 'Preparing…') : prep?.ok ? 'Compatible. Load starts the worker with the robot still; nothing moves before Run.' : 'Choose a checkpoint, Check compatibility and limits, then Load. Nothing moves before Run.'}
+      ring={isActive ? { value: live.step ?? 0, total: Math.max(live.step ?? 0, Math.round(maxD * (live.rate_hz || 0)) || (live.step ?? 0) || 1), label: 'Steps', sub: live.rate_hz ? `${live.rate_hz} Hz` : 'this rollout' } : undefined}
+    />
+  );
+
+  return (
+    <>
+      <Console tabs={tabs} top={isActive ? <button className="estop" onClick={() => cmd('estop')}>EMERGENCY STOP</button> : undefined} center={center} side={side} bar={bar} sideTestId="rollout-side" />
       <Confirm open={confirm === 'load'} onClose={() => setConfirm('')} title="Load the model" confirmLabel="Load (no motion)" checks={CHECKS.slice(0, 2)} onConfirm={load} busy={busy === 'load'}>
         The worker loads the checkpoint and connects to the robot. It publishes nothing until you press Run.
       </Confirm>
       <Confirm open={confirm === 'run'} onClose={() => setConfirm('')} danger title="Run the policy on the robot" confirmLabel="Run" checks={CHECKS} typeToConfirm="run" onConfirm={() => cmd('run')} busy={busy === 'run'}>
         The robot will move under policy control at {Math.round(100 * (r.data?.config?.speed_factor || speed))}% speed for at most {r.data?.config?.max_duration_s || maxDur} s. Keep this page open: if its heartbeat stops, the robot holds position.
       </Confirm>
-    </div>
+    </>
   );
 }
 
@@ -219,7 +232,7 @@ function OutcomeForm({ ro, onDone }: { ro: any; onDone: () => void }) {
   );
 }
 
-function RobotInference() {
+export function RobotInference({ tabs }: { tabs?: ReactNode }) {
   const toast = useToast();
   const ready = useReadiness();
   const { taskStatus, robotType } = useSystem();
@@ -237,31 +250,48 @@ function RobotInference() {
     } catch (e) { toast.error(e); } finally { setBusy(''); }
   };
   const stop = async () => { setBusy('stop'); try { const r = await ros.task('stop', taskStatus?.task_info || {}); r.success ? toast.ok('Stopped') : toast.warn(r.message); } catch (e) { toast.error(e); } finally { setBusy(''); } };
-  return (
-    <div className="grid g-side">
-      <Panel title="On-robot inference" sub="physical_ai_server runs a policy saved on the robot side (ROBOTIS inference)" actions={running ? <Badge tone="warn" dot>running</Badge> : <Badge>idle</Badge>}>
+  const phase = taskStatus?.phase;
+  const center = (
+    <>
+      {running && <Callout tone="warn" title="Robot moving under container inference">Supervise closely. Stop sends STOP to physical_ai_server.</Callout>}
+      <RobotCameras recording={running} />
+      <Callout tone="warn" title="Fewer safeguards than the host rollout">This engine has no joint envelope or heartbeat hold from PHYSIOS. Supervise closely; Stop sends STOP to physical_ai_server.</Callout>
+    </>
+  );
+  const side = (
+    <>
+      <SideSec label="Task information" actions={running ? <Badge tone="warn" dot>running</Badge> : <Badge>idle</Badge>}>
         <div className="stack">
-          {running ? (
-            <div className="row" style={{ justifyContent: 'space-between' }}>
-              <span className="small">Inferencing for {fmt.dur(taskStatus.proceed_time)}</span>
-              <div className="row"><Button size="lg" icon={<I.stop />} busy={busy === 'stop'} onClick={stop}>Stop</Button><button className="estop" onClick={stop}>EMERGENCY STOP</button></div>
-            </div>
-          ) : (
-            <>
-              {policies.error ? <Callout tone="warn">{(policies.error as Error).message}</Callout> : !policies.data ? <Loading rows={2} /> : !policies.data.policies.length ? <Empty title="No policies saved on the robot side" /> : (
-                <Field label="Policy"><Select value={policy} onChange={setPolicy} options={policies.data.policies.map((p) => ({ value: p.path, label: `${p.path} (${p.type})` }))} placeholder="Select…" /></Field>
-              )}
-              <Field label="Task instruction"><TextArea rows={2} value={task} onChange={(e) => setTask(e.target.value)} /></Field>
-              <Callout tone="warn" title="Fewer safeguards than the host rollout">This engine has no joint envelope or heartbeat hold from PHYSIOS. Supervise closely; Stop sends STOP to physical_ai_server.</Callout>
-              <Button variant="danger" disabled={!policy || !ready.ok} busy={busy === 'start'} onClick={() => setConfirm(true)}>Start on-robot inference</Button>
-            </>
+          <div className="tiny muted">physical_ai_server runs a policy saved on the robot side (ROBOTIS inference).</div>
+          {policies.error ? <Callout tone="warn">{(policies.error as Error).message}</Callout> : !policies.data ? <Loading rows={2} /> : !policies.data.policies.length ? <Empty title="No policies saved on the robot side" /> : (
+            <Field label="Policy"><Select value={policy} onChange={setPolicy} disabled={running} options={policies.data.policies.map((p) => ({ value: p.path, label: `${p.path} (${p.type})` }))} placeholder="Select…" /></Field>
           )}
+          <Field label="Task instruction"><TextArea rows={2} value={task} disabled={running} onChange={(e) => setTask(e.target.value)} /></Field>
         </div>
-      </Panel>
+      </SideSec>
       <Readiness r={ready} />
+    </>
+  );
+  const bar = (
+    <ControlBar
+      buttons={<>
+        <BigButton tone={!running && policy && ready.ok ? 'primary' : undefined} icon={<I.play />} disabled={running || !policy || !ready.ok} busy={busy === 'start'} onClick={() => setConfirm(true)} data-action="start-inference">Start</BigButton>
+        <BigButton icon={<I.stop />} disabled={!running} busy={busy === 'stop'} onClick={stop}>Stop</BigButton>
+        <BigButton tone="danger" icon={<I.alert />} disabled={!running} onClick={stop} title="Send STOP to physical_ai_server">E-STOP</BigButton>
+      </>}
+      title={running ? 'Inferencing' : phase != null ? PHASES[phase] : 'No status'}
+      dot={running ? 'var(--err)' : 'var(--ink-4)'}
+      time={<>{Math.round(taskStatus?.proceed_time || 0)} <span className="muted" style={{ fontSize: 13 }}>s</span></>}
+      pct={running ? 100 : 0} barColor="var(--err)"
+      hint={running ? 'Policy running on the robot.' : 'Select a policy saved on the robot side, then press Start (checklist and typed confirmation).'}
+    />
+  );
+  return (
+    <>
+      <Console tabs={tabs} top={running ? <button className="estop" onClick={stop}>EMERGENCY STOP</button> : undefined} center={center} side={side} bar={bar} sideTestId="container-side" />
       <Confirm open={confirm} onClose={() => setConfirm(false)} danger title="Start on-robot inference" confirmLabel="Start" checks={CHECKS} typeToConfirm="run" onConfirm={start}>
         The robot will move under control of <span className="mono">{policy}</span> until you stop it.
       </Confirm>
-    </div>
+    </>
   );
 }

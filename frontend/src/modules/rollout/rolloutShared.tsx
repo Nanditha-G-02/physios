@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { planning } from '@/api/gateway';
 import { trainer } from '@/api/trainer';
 import { useSystem } from '@/app/system';
-import { Field, Select, fmt } from '@/design/ui';
+import { CodeBlock, ErrorState, Field, Panel, Select, fmt } from '@/design/ui';
 import { useLoad } from '@/hooks/data';
 
 export function useCheckpointChoice(initialRun?: string | null, initialStep?: string | null) {
@@ -67,4 +67,11 @@ export function PredictionTable({ names, state, raw, safe, notes }: { names: str
       {notes && notes.length > 0 && <div className="tiny" style={{ color: 'var(--warn)' }}>{notes.join(' · ')}</div>}
     </div>
   );
+}
+
+export function Logs({ id }: { id?: string }) {
+  const log = useLoad(() => trainer.rolloutLog(id!), [id], 2500, !!id);
+  if (!id) return null;
+  const text = log.data?.text ?? (log.data?.lines || []).join('\n');
+  return <Panel title="Worker log">{log.error ? <ErrorState error={log.error} /> : <CodeBlock className="log" text={text || 'No output yet.'} />}</Panel>;
 }

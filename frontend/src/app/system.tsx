@@ -1,5 +1,5 @@
 // Application-wide state: service health, ROS link, active robot, live task status,
-// notifications and theme. Everything comes from the backend; nothing is invented here.
+// notifications. Everything comes from the backend; nothing is invented here.
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { gateway, planning, type ActivityEvent, type Health } from '@/api/gateway';
@@ -8,14 +8,12 @@ import { rosSocket } from '@/api/rosbridge';
 import { useRosState } from '@/hooks/data';
 
 export type Notice = { id: string; t: number; level: 'info' | 'warn' | 'error'; source: string; text: string };
-type Theme = 'dark' | 'light';
 type Sys = {
   health: Health | null; healthError: unknown; refreshHealth: () => void;
   rosLink: 'connecting' | 'open' | 'closed';
   taskStatus: any | null; taskStatusAt: number; heartbeatAt: number;
   robotType: string; setRobotTypeLocal: (r: string) => void;
   notices: Notice[]; unread: number; markRead: () => void;
-  theme: Theme; setTheme: (t: Theme) => void;
 };
 const Ctx = createContext<Sys | null>(null);
 
@@ -31,7 +29,6 @@ export function SystemProvider({ children }: { children: ReactNode }) {
   const [robotType, setRobotTypeLocal] = useState('');
   const [notices, setNotices] = useState<Notice[]>([]);
   const [readAt, setReadAt] = useState(() => Number(lsGet('physios.readAt', '0')));
-  const [theme, setThemeS] = useState<Theme>(() => (lsGet('physios.theme', 'dark') as Theme));
   const rosLink = useRosState();
   const seq = useRef({ gw: 0, tr: 0 });
 
@@ -87,15 +84,13 @@ export function SystemProvider({ children }: { children: ReactNode }) {
     planning('robot.profile', {}).then((r) => r?.robot_type && setRobotTypeLocal(r.robot_type)).catch(() => {});
   }, [rosUp, robotType]);
 
-  useEffect(() => { document.documentElement.dataset.theme = theme; lsSet('physios.theme', theme); }, [theme]);
 
   const value = useMemo<Sys>(() => ({
     health, healthError, refreshHealth, rosLink, taskStatus, taskStatusAt, heartbeatAt,
     robotType, setRobotTypeLocal, notices,
     unread: notices.filter((n) => n.t > readAt).length,
     markRead: () => { const t = Date.now(); setReadAt(t); lsSet('physios.readAt', String(t)); },
-    theme, setTheme: setThemeS,
-  }), [health, healthError, refreshHealth, rosLink, taskStatus, taskStatusAt, heartbeatAt, robotType, notices, readAt, theme]);
+  }), [health, healthError, refreshHealth, rosLink, taskStatus, taskStatusAt, heartbeatAt, robotType, notices, readAt]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 

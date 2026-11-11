@@ -20,8 +20,12 @@ import { UrdfScene } from './UrdfScene';
 const STAGES = ['Draft', 'URDF registered', 'ROS verified', 'Hardware verified', 'Data & training ready'];
 
 export default function RobotManagement({ view, robotId }: { view?: 'new'; robotId?: string }) {
+  const hdr = robotId ? { title: 'Robot profile', intro: 'Model, validation, configuration and staged readiness of one custom robot.' }
+    : view === 'new' ? { title: 'Add a custom robot', intro: 'Describe the robot, upload its URDF / Xacro with meshes, check the validation report, then register it.' }
+    : { title: 'Custom robot library', intro: 'Add a robot from its URDF, check it, look at it in 3D, then configure and verify it step by step. Recording and training unlock only after the robot has been verified on hardware.',
+        actions: <Link to="/robots/new" className="btn btn-primary" data-action="add-robot">+ Add custom robot</Link> };
   return (
-    <Page>
+    <Page code="R" label="Robots" {...hdr}>
       <Requires service="trainer" what="Robot management">
         {robotId ? <RobotDetail id={robotId} /> : view === 'new' ? <AddRobot /> : <Library />}
       </Requires>
@@ -39,10 +43,7 @@ function Library() {
   const customIds = new Set(list.map((r) => r.id.toLowerCase().replace(/[^a-z0-9_]/g, '_')));
   return (
     <div className="stack">
-      <div className="row-between">
-        <p className="page-intro" style={{ margin: 0 }}>Robots known to this PC: built-in types served by physical_ai_server, and custom robots added from a URDF / Xacro. Custom robots unlock step by step, and the real robot never moves without your explicit authorisation.</p>
-        <Link to="/robots/new" className="btn btn-primary" data-action="add-robot"><I.plus />Add custom robot</Link>
-      </div>
+
       <Panel title="Custom robot library" sub={`${list.length} robot(s)`} flush>
         {robots.error ? <ErrorState error={robots.error} onRetry={robots.reload} /> : !robots.data ? <div style={{ padding: 16 }}><Loading rows={3} /></div> : !list.length ? <Empty icon={<I.robot />} title="No custom robots yet" action={<Link to="/robots/new" className="btn btn-sm">Add one from a URDF</Link>} /> : (
           <div className="table-wrap"><table className="table"><thead><tr><th>Robot</th><th>Type</th><th>State</th><th>Readiness</th><th className="right">DOF</th><th>Validation</th><th>Updated</th></tr></thead>

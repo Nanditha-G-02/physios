@@ -9,10 +9,10 @@ import { I } from '@/design/icons';
 import { Badge, Dot, Empty, Loading, Meter, Panel, Stat, StatusBadge, fmt, toneOf } from '@/design/ui';
 import { useLoad } from '@/hooks/data';
 import { useRef } from 'react';
-import { Page } from '../shared';
 
-export default function Dashboard() {
-  const { health, taskStatus, notices, robotType } = useSystem();
+/** The operations overview under the Home hero: live checks, hardware, training, datasets. */
+export function Overview() {
+  const { health, taskStatus, notices } = useSystem();
   const av = useAvailability();
   const sys = useLoad(() => gateway.system(), [], 3000);
   const runs = useLoad(() => trainer.runs(), [av.trainer], 5000, av.trainer);
@@ -52,22 +52,7 @@ export default function Dashboard() {
   const openSessions = (sessions.data?.sessions || []).filter((x: any) => !['concluded', 'stopped'].includes(x.status));
 
   return (
-    <Page>
-      <div className="hero" style={{ marginBottom: 16 }}>
-        <div className="row-between">
-          <div>
-            <div className="label">Physical AI operations</div>
-            <h2 style={{ marginTop: 6 }}>{health?.status === 'ok' ? 'All core services online' : health ? 'Some services need attention' : 'Connecting to PHYSIOS gateway…'}</h2>
-            <p>{robotType ? <>Active robot <b>{robotType}</b>. </> : 'No robot type selected on physical_ai_server. '}{taskActive ? <>Task running: <b>{PHASES[phase]}</b>.</> : 'No task running.'}</p>
-          </div>
-          <div className="row">
-            <Link to="/planning" className="btn"><I.planning />Plan a collection</Link>
-            <Link to="/recording" className="btn"><I.record />Record</Link>
-            <Link to="/training/new" className="btn btn-primary"><I.training />New training</Link>
-          </div>
-        </div>
-      </div>
-
+    <div className="stack" data-testid="overview">
       <div className="grid g4">
         <Stat label="System" value={health ? health.status : '—'} tone={health ? toneOf(health.status) : 'danger'} foot={health ? `${Object.values(health.services).filter((x) => x.status === 'ok').length}/${Object.keys(health.services).length} services OK` : 'gateway not reachable'} />
         <Stat label="Datasets" value={datasets.loading && !datasets.data ? '…' : fmt.num(dsList.length)} foot={`${fmt.num(episodes)} episodes · from ${datasets.data?.source || '—'}`} />
@@ -107,7 +92,7 @@ export default function Dashboard() {
                 })}</div>
                 : <Empty icon={<I.training />} title="No training running">{models.length ? `${models.length} finished model(s) available.` : 'Start one from the Training Studio.'}</Empty>}
             </Panel>
-            <Panel title="Available models" sub="Finished local trainings" actions={<Link to="/evaluation" className="btn btn-sm btn-ghost">Evaluate<I.chevron /></Link>}>
+            <Panel title="Available models" sub="Finished local trainings" actions={<Link to="/training/evaluate" className="btn btn-sm btn-ghost">Evaluate<I.chevron /></Link>}>
               {!av.trainer ? <Empty icon={<I.link />} title="Training service offline" />
                 : models.length ? <div className="list" style={{ margin: -16 }}>{models.slice(0, 6).map((r) => (
                   <Link key={r.id} to={`/training/runs/${r.id}`} className="list-item" style={{ color: 'inherit' }}>
@@ -188,6 +173,6 @@ export default function Dashboard() {
           </Panel>
         </div>
       </div>
-    </Page>
+    </div>
   );
 }

@@ -32,13 +32,13 @@ physios/
 ├── backend/tests/test_gateway.py          unit + in-process integration tests
 ├── frontend/                              Vite + React 18 + TypeScript
 │   └── src/
-│       ├── app/            shell (rail, header, connection pills, robot selector, notifications), router, system state
-│       ├── design/         theme.css (tokens, light/dark), ui.tsx (components), charts.tsx, icons.tsx
+│       ├── app/            shell (numbered rail, nav guard, link/robot status, services/notifications), router, system state
+│       ├── design/         theme.css (Physical AI Manager tokens and classes), ui.tsx (components), charts.tsx, icons.tsx
 │       ├── api/            http.ts (errors), gateway.ts, trainer.ts, rosbridge.ts (live topics)
 │       ├── hooks/          useLoad/useAction/useTopic/useNow
 │       ├── lib/            urdf.ts (URDF → three.js), hardwareTest.ts (one-joint test sequencer)
-│       └── modules/        dashboard, planning, recording, datasets, training, optimization,
-│                           evaluation, inference, rollout, robots, settings
+│       └── modules/        home (+ dashboard overview), planning, recording, datasets, training
+│                           (+ optimization, evaluation tabs), inference (+ rollout tabs), robots, settings
 ├── tests/e2e/                             devstack.py (stand-ins), physios_e2e.py (browser walk-through)
 └── documentation/
 ```
@@ -58,19 +58,42 @@ the brief also rules out.
   packages (works offline). There is no router, state, chart or UI library: those are a few
   hundred lines here, and the result is one consistent design system.
 
+## Design system and navigation
+
+PHYSIOS uses the design language of the existing Physical AI Manager, so operators see the
+same application they already know:
+
+* **Tokens.** Paper greys (`#F3F4F6`, `#ECEEF1`, `#E1E4E8`), ink (`#0B0C0E` … `#B4B9C1`), sky
+  blue accents (`#D6E3FF`, `#2457E6`), green / orange / red signals, 22 px card radius, pill
+  buttons and chips, Geist Sans and Geist Mono (bundled, offline). Light theme only, as before.
+* **Shell.** The 96 px left rail with numbered steps (01 Home … 06 Inference, R Robots), a
+  black capsule for the current page, green ticks for earlier steps and the "Select and
+  confirm a robot on Home first." guard; Link / Robot status and the services, notifications
+  and settings buttons at the foot of the rail.
+* **Page layouts.** Hero pages ("05 · Training" label, light fading title, grey intro, chips and
+  segmented tabs on the right) for Training, Robots and Settings; the Home page with the robot
+  drawing, robot selection card and six workflow tiles; the workbench layout (white list sheet
+  on the left, detail on the right) for Planning and Data; the console layout (robot type and
+  connection at the top left, cameras in the middle, white side sheet, Start / Stop / Retry /
+  Next / Finish control bar at the bottom) for Record and Inference.
+* **Navigation.** Training holds New training, Runs, Queue, Optimize, Evaluate, Compare and
+  Storage as tabs (`/training/...`). Inference holds Model check (dry run), Host rollout and
+  Container inference as tabs (`/inference`, `/inference/rollout`, `/inference/container`).
+  Settings is reached from the rail foot.
+
 ## Module → back end map
 
 | Module | Gateway route(s) | Existing implementation |
 |---|---|---|
-| Dashboard | `health`, `system`, `activity`, `trainer/runs`, `trainer/optimization/sessions`, `trainer/rollouts`, `data/data.list_datasets`; `/ros` `/task/status`, `/heartbeat` | gateway, pam_trainer, physical_ai_server |
+| Home (robot selection, workflow, overview) | `ros/robot_type`, `health`, `system`, `activity`, `trainer/runs`, `trainer/optimization/sessions`, `trainer/rollouts`, `data/data.list_datasets`; `/ros` `/task/status`, `/heartbeat` | gateway, pam_trainer, physical_ai_server |
 | Planning Studio | `planning/plan.*`, `planning/meta`, `planning/robot.profile` | `physical_ai_server/planning` (engine, validation, versioning) |
 | Recording Studio | `planning/record.*`, `ros/task`, `ros/cameras`, `camera/stream`, `data/data.review`; `/ros` topics | recorder in physical_ai_server, web_video_server |
 | Dataset Library | `data/data.*`, `datasets/<id>/files/*`, `datasets/<id>/export`, `trainer/health-report`, `ros/hf`, `data/github.*` | planning/datasets.py, health_probe.py, HF worker |
 | Training Studio | `trainer/envs`, `datasets`, `models`, `plan`, `runs*`, `queue*`, `storage` | pam_trainer runner/planner |
-| Optimization Studio | `trainer/runs/<id>/diagnostics`, `trainer/optimization/*`, `trainer/compare`, `trainer/runs/<id>/watch` | diagnostics.py, tuning.py, optimizer.py |
-| Evaluation Studio | `trainer/evaluations*`, `trainer/compare` | evaluations.py |
-| Inference Studio | `trainer/rollouts/prepare`, `trainer/rollouts` (dry run), `rollouts/<id>`, `ros/policies` | rollout.py, rollout_worker.py |
-| Robot Rollout | `trainer/rollouts*` (run/pause/stop/estop/heartbeat/limits), `ros/task` (`start_inference` with `confirm`) | rollout_worker.py; physical_ai_server inference |
+| Training · Optimize tab | `trainer/runs/<id>/diagnostics`, `trainer/optimization/*`, `trainer/compare`, `trainer/runs/<id>/watch` | diagnostics.py, tuning.py, optimizer.py |
+| Training · Evaluate / Compare tabs | `trainer/evaluations*`, `trainer/compare` | evaluations.py |
+| Inference · Model check tab | `trainer/rollouts/prepare`, `trainer/rollouts` (dry run), `rollouts/<id>`, `ros/policies` | rollout.py, rollout_worker.py |
+| Inference · Host rollout / Container tabs | `trainer/rollouts*` (run/pause/stop/estop/heartbeat/limits), `ros/task` (`start_inference` with `confirm`) | rollout_worker.py; physical_ai_server inference |
 | Robot Management | `trainer/robots/*`, `/ros` (ROS checks, live joints, hardware test) | pam_trainer/robots (archive, xacro, urdf, store, readiness) |
 | Settings | `config`, `health`, `trainer/envs`, `trainer/system` | gateway, pam_trainer |
 
@@ -88,9 +111,9 @@ REST, so the gateway can validate it and log it.
 | Action | Who can trigger it | Guard |
 |---|---|---|
 | Recording | Start take / Start recording | operator click; the human leader arm drives the follower |
-| On-robot inference | Robot Rollout, "policy on the robot side" | checklist + typed `run`; gateway rejects `start_inference` without `"confirm": true` (HTTP 428) |
-| Host rollout load | Robot Rollout / Inference Studio | compatibility + token from `prepare`; worker publishes nothing |
-| Host rollout run | Robot Rollout | readiness all green + 4-item checklist + typed `run`; worker enforces envelope, per-step limits, stale-data and heartbeat holds, duration cap; E-STOP kills the worker after 0.5 s |
+| On-robot inference | Inference · Container inference | checklist + typed `run`; gateway rejects `start_inference` without `"confirm": true` (HTTP 428) |
+| Host rollout load | Inference · Host rollout / Model check | compatibility + token from `prepare`; worker publishes nothing |
+| Host rollout run | Inference · Host rollout / Container tabs | readiness all green + 4-item checklist + typed `run`; worker enforces envelope, per-step limits, stale-data and heartbeat holds, duration cap; E-STOP kills the worker after 0.5 s |
 | Hardware test | Robot Management | Stage 2, connected, checklist, typed robot name → server token (180 s, single use) → Start motion; pre-hold detects wrong mapping; STOP; server re-checks samples |
 
 A software stop holds position. It is not a hardware emergency stop. The operator keeps the

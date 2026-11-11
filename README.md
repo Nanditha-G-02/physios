@@ -41,9 +41,11 @@ Without it, start them yourself; PHYSIOS shows which services are missing and ho
 
 ## Modules
 
-Dashboard · Planning Studio · Recording Studio · Dataset Library · Training Studio ·
-Optimization Studio · Evaluation Studio · Inference Studio · Robot Rollout · Robot Management ·
-Settings.
+Same look, navigation and page layouts as the Physical AI Manager:
+
+01 Home (robot selection, workflow, service overview) · 02 Planning · 03 Record · 04 Data ·
+05 Training (new training, runs, queue, optimize, evaluate, compare, storage) · 06 Inference
+(model check, host rollout, container inference) · R Robots · Settings.
 
 ## Documentation
 

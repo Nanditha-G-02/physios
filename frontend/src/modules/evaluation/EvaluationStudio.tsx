@@ -8,19 +8,16 @@ import { Link } from '@/app/router';
 import { BarChart } from '@/design/charts';
 import { I } from '@/design/icons';
 import {
-  Button, Callout, Confirm, Empty, ErrorState, Field, Input, Loading, NumberInput, Panel, Select, StatusBadge, Tabs,
+  Button, Callout, Confirm, Segmented, Empty, ErrorState, Field, Input, Loading, NumberInput, Panel, Select, StatusBadge,
   fmt, useToast,
 } from '@/design/ui';
 import { useLoad } from '@/hooks/data';
 import { Compare } from '../optimization/OptimizationStudio';
-import { Page, Requires } from '../shared';
 
-export default function EvaluationStudio() {
-  return (
-    <Page intro="Judge trained models on evidence: offline metrics show how closely a model copies the demonstrations; robot trials show whether it actually grasps and places. Run a checkpoint on the robot from Robot Rollout, then record what happened here.">
-      <Requires service="trainer" what="Evaluation"><Studio /></Requires>
-    </Page>
-  );
+/** Training → Evaluate. Offline metrics show how closely a model copies the demonstrations;
+ *  robot trials show whether it actually grasps and places. */
+export function EvaluationBody() {
+  return <Studio />;
 }
 
 function Studio() {
@@ -30,7 +27,7 @@ function Studio() {
   const finished = (runs.data?.runs || []).filter((r: any) => ['succeeded', 'stopped', 'failed'].includes(r.status));
   return (
     <div className="stack">
-      <Tabs value={tab} onChange={setTab} tabs={[{ id: 'robot', label: 'Robot evaluations' }, { id: 'offline', label: 'Offline metrics & comparison' }]} />
+      <div><Segmented value={tab} onChange={setTab} options={[{ value: 'robot', label: 'Robot evaluations' }, { value: 'offline', label: 'Offline metrics & comparison' }]} /></div>
       {tab === 'robot' ? <RobotEvals runs={finished} ev={ev} /> : <Compare runs={finished} initial={finished.slice(0, 2).map((r: any) => r.id)} />}
     </div>
   );
@@ -54,7 +51,7 @@ function RobotEvals({ runs, ev }: { runs: any[]; ev: ReturnType<typeof useLoad<a
     <div className="grid g-side">
       <div className="stack">
         <Panel title="Success rate by checkpoint" sub="95% Wilson interval; fewer than 10 trials is a rough indication only">
-          {!summary.length ? <Empty icon={<I.evaluation />} title="No robot trials recorded" action={<Link to="/rollout" className="btn btn-sm">Run a checkpoint on the robot</Link>} /> : (
+          {!summary.length ? <Empty icon={<I.evaluation />} title="No robot trials recorded" action={<Link to="/inference/rollout" className="btn btn-sm">Run a checkpoint on the robot</Link>} /> : (
             <div className="stack">
               <BarChart data={summary.map((g) => ({ label: `${g.job_name} @${g.step}`, value: Math.round(100 * (g.rate || 0)) }))} format={(v) => `${v}%`} />
               <div className="table-wrap"><table className="table"><thead><tr><th>Model</th><th>Checkpoint</th><th className="right">Trials</th><th className="right">Success</th><th>95% CI</th><th>Failures</th></tr></thead>
@@ -79,7 +76,7 @@ function RobotEvals({ runs, ev }: { runs: any[]; ev: ReturnType<typeof useLoad<a
       </div>
       <Panel title="Record a robot trial" sub="What you observed when the checkpoint ran on the robot" footer={<Button variant="primary" onClick={add} disabled={!form.run_id || !form.step} data-action="add-trial">Save trial</Button>}>
         <div className="stack">
-          <Field label="Model (training run)"><Select value={form.run_id} onChange={(v) => setForm({ ...form, run_id: v, step: '' })} options={runs.map((r: any) => ({ value: r.id, label: `${r.job_name} (${r.policy})` }))} placeholder="Select…" /></Field>
+          <Field label="Model (training run)"><Select data-field="eval-run" value={form.run_id} onChange={(v) => setForm({ ...form, run_id: v, step: '' })} options={runs.map((r: any) => ({ value: r.id, label: `${r.job_name} (${r.policy})` }))} placeholder="Select…" /></Field>
           <Field label="Checkpoint"><Select value={form.step} onChange={(v) => setForm({ ...form, step: v })} options={(cks.data?.checkpoints || []).map((c: any) => ({ value: String(c.step), label: `step ${c.step}${c.is_last ? ' (last)' : ''}` }))} placeholder="Select…" /></Field>
           <Field label="Outcome"><Select value={form.outcome} onChange={(v) => setForm({ ...form, outcome: v })} options={Object.entries(outcomes).map(([value, label]) => ({ value, label }))} /></Field>
           <div className="grid g2">

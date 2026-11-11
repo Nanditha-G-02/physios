@@ -87,13 +87,14 @@ try:
         page.wait_for_selector('[data-service-card="ros_node"][data-status="ok"]')
         for k in ('gateway', 'trainer', 'rosbridge', 'ros_node', 'camera', 'datasets'):
             assert page.locator('[data-service-card="%s"]' % k).get_attribute('data-status') == 'ok', k
-        expect(page.get_by_text('All core services online').first).to_be_visible()
-        shot(page, '01-dashboard')
-        step('dashboard: six live service checks OK, hardware and datasets from backends')
+        shot(page, '01-home')
+        step('home: six live service checks OK in the overview, hardware and datasets from backends')
 
-        page.locator('[data-testid="robot-select"]').select_option('s101_dataset')
+        page.locator('[data-robot="s101_dataset"]').click()
+        page.locator('[data-action="confirm-robot"]').click()
         toast(page, 'Robot type set to s101_dataset')
-        step('header: robot type set on physical_ai_server')
+        assert page.locator('[data-nav="/planning"]').get_attribute('data-blocked') in (None, 'false')
+        step('home: robot type selected and confirmed on physical_ai_server; workflow unlocked')
 
         # ----------------------------------------------------------------- planning
         page.locator('[data-nav="/planning"]').click()
@@ -134,10 +135,10 @@ try:
         page.locator('[data-nav="/recording"]').click()
         page.wait_for_selector('[data-testid="plan-recorder"]')
         page.wait_for_selector('[data-camera][data-state="live"]', timeout=20000)
-        sw = page.locator('[data-testid="plan-recorder"] [role="switch"]')
+        sw = page.locator('[data-testid="review-switch"] [role="switch"]')
         if sw.get_attribute('aria-checked') != 'true':
             sw.click()
-            page.wait_for_selector('[data-testid="plan-recorder"] [role="switch"][aria-checked="true"]')
+            page.wait_for_selector('[data-testid="review-switch"] [role="switch"][aria-checked="true"]')
         page.locator('[data-action="start-take"]').click()
         page.wait_for_selector('[data-testid="task-bar"][data-phase="3"]', timeout=20000)
         shot(page, '04-recording-live')
@@ -153,6 +154,8 @@ try:
         page.locator('[data-nav="/datasets"]').click()
         page.wait_for_selector('[data-dataset="%s"]' % did)
         page.goto(BASE + '/datasets/NandithaaaG/s101_dataset_red_cube')
+        page.wait_for_selector('[data-testid="dataset-overview"], .wb-top')
+        page.get_by_role('tab', name='Episodes').click()
         page.wait_for_selector('[data-ep="0"]')
         page.locator('[data-open-ep="1"]').click()
         page.wait_for_selector('video[data-video]')
@@ -192,13 +195,13 @@ try:
         step('training: wizard -> exact command reviewed -> started with the preview token -> finished (%s)' % run_id)
 
         # ------------------------------------------------------------- optimisation
-        page.goto(BASE + '/optimization/runs/fx-explode')
+        page.goto(BASE + '/training/optimize/runs/fx-explode')
         page.wait_for_selector('[data-issue="loss_explosion"]')
         page.locator('[data-action="propose"]').click()
         expect(page.get_by_text('Cannot create').first).to_be_visible()   # synthetic fixture run: no env/dataset
         assert page.locator('[data-action="confirm"]').is_disabled()
         page.keyboard.press('Escape')
-        page.goto(BASE + '/optimization/runs/' + run_id)
+        page.goto(BASE + '/training/optimize/runs/' + run_id)
         page.wait_for_selector('[data-issue="nonfinite_loss"], [data-issue="loss_explosion"]')
         page.locator('[data-action="propose"]').click()
         expect(page.get_by_text('Review the trials').first).to_be_visible()
@@ -212,8 +215,8 @@ try:
              'control trial launched as its own run (fixture run without env correctly refused)')
 
         # --------------------------------------------------------------- evaluation
-        page.goto(BASE + '/evaluation')
-        page.locator('select').nth(1).select_option('fx-healthy')
+        page.goto(BASE + '/training/evaluate')
+        page.locator('[data-field="eval-run"]').select_option('fx-healthy')
         page.wait_for_timeout(800)
         page.locator('[data-action="add-trial"]').click()
         toast(page, 'Trial recorded')
@@ -238,7 +241,7 @@ try:
              '(fails honestly here: no torch/LeRobot in this sandbox; the UI shows the worker log)')
 
         # ------------------------------------------------------------------ rollout
-        page.goto(BASE + '/rollout')
+        page.goto(BASE + '/inference/rollout')
         page.wait_for_selector('[data-testid="readiness"]')
         page.locator('[data-field="model-run"]').select_option('fx-real')
         page.wait_for_timeout(800)
@@ -317,16 +320,11 @@ try:
         shot(page, '14-disconnected')
         step('disconnected: modules show the backend\'s own hint instead of empty or fake data')
 
-        # ------------------------------------------------------------ settings/theme
+        # ------------------------------------------------------------------ settings
         page.goto(BASE + '/settings')
         expect(page.get_by_text('Effective configuration').first).to_be_visible()
-        page.get_by_role('button', name='Light').click()
-        page.goto(BASE + '/')
-        page.wait_for_selector('[data-service-card="trainer"][data-status="ok"]')
-        shot(page, '15-dashboard-light')
-        page.goto(BASE + '/settings')
-        page.get_by_role('button', name='Dark').click()
-        step('settings: effective configuration; light and dark themes')
+        shot(page, '15-settings')
+        step('settings: effective configuration from the gateway')
 
         assert not errors, errors
         b.close()

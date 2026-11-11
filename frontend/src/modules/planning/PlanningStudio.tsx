@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { planning, ros } from '@/api/gateway';
 import { Link, useRouter } from '@/app/router';
-import { useSystem } from '@/app/system';
+import { useAvailability, useSystem } from '@/app/system';
 import { BarChart } from '@/design/charts';
 import { I } from '@/design/icons';
 import {
@@ -17,12 +17,12 @@ import { SequenceEditor, StrategyEditor } from './StrategyEditor';
 
 type Full = { plan: any; summary: any; versions: any[]; progress: any; events: any[]; dataset_id: string | null };
 
+/** 02 · Planning, in the Physical AI Manager workbench layout: the list of collection plans
+ *  on the left, the open plan on the right. */
 export default function PlanningStudio({ planId }: { planId?: string }) {
-  return (
-    <Page intro="Design how demonstrations are collected: what to manipulate, where things start, how episodes vary. The planning engine on the robot side generates, validates and versions every plan; recording uses only approved plans.">
-      <Requires service="ros" what="The Planning Studio"><Studio planId={planId} /></Requires>
-    </Page>
-  );
+  const av = useAvailability();
+  if (av.known && !av.ros) return <Page code="02" label="Planning" title="Plan the demonstrations"><Requires service="ros" what="The Planning Studio"><span /></Requires></Page>;
+  return <Studio planId={planId} />;
 }
 
 function Studio({ planId }: { planId?: string }) {
@@ -33,23 +33,31 @@ function Studio({ planId }: { planId?: string }) {
   const [creating, setCreating] = useState(false);
   const plans: any[] = list.data?.plans || [];
   return (
-    <div className="grid g-side-l">
-      <Panel title="Plans" sub={`${plans.length} plan(s)`} flush actions={<Button size="sm" variant="primary" icon={<I.plus />} onClick={() => setCreating(true)} data-action="new-plan">New</Button>}>
-        {list.error ? <ErrorState error={list.error} onRetry={list.reload} /> : list.loading && !list.data ? <div style={{ padding: 16 }}><Loading rows={4} /></div> : plans.length ? (
-          <div className="list">{plans.map((p) => (
-            <button key={p.id} className="list-item" aria-selected={p.id === planId} onClick={() => go(`/planning/${p.id}`)} data-plan={p.id}>
-              <div className="grow">
-                <div className="row-between"><b className="ellipsis" style={{ fontWeight: 600 }}>{p.name || p.id}</b><StatusBadge status={p.status} /></div>
-                <div className="tiny muted">{p.strategy} · {p.episodes} ep · v{p.version}{p.id === list.data?.active_plan_id ? ' · active for recording' : ''}</div>
-                {p.progress && (p.progress.validated + p.progress.recorded > 0) && <div className="progress" style={{ marginTop: 6 }}><span style={{ width: `${(100 * (p.progress.validated + p.progress.recorded)) / Math.max(1, p.episodes)}%` }} /></div>}
-              </div>
-            </button>
-          ))}</div>
-        ) : <Empty icon={<I.planning />} title="No plans yet" action={<Button size="sm" onClick={() => setCreating(true)}>Create the first plan</Button>} />}
-        <div style={{ padding: '10px 16px', borderTop: '1px solid var(--line)' }}><Switch checked={showArchived} onChange={setShowArchived} label="Show archived" /></div>
-      </Panel>
-      {planId ? <PlanEditor key={planId} planId={planId} meta={meta.data} activeId={list.data?.active_plan_id} onChanged={list.reload} />
-        : <Panel><Empty icon={<I.planning />} title="Select or create a plan">Plans define items, workspace, strategy and every episode before recording starts.</Empty></Panel>}
+    <div className="workbench">
+      <aside className="wb-list">
+        <div className="wb-list-head">
+          <div><div className="label">Sheet 02</div><h2>Collection plans</h2></div>
+          <button className="btn btn-sm btn-primary" onClick={() => setCreating(true)} data-action="new-plan">+ New</button>
+        </div>
+        <div className="wb-items">
+          {list.error ? <div style={{ padding: 12 }}><ErrorState error={list.error} onRetry={list.reload} /></div> : list.loading && !list.data ? <div style={{ padding: 12 }}><Loading rows={4} /></div> : plans.map((p) => {
+            const done = p.progress ? p.progress.validated + p.progress.recorded : 0;
+            return (
+              <button key={p.id} className="wb-item" aria-selected={p.id === planId} onClick={() => go(`/planning/${p.id}`)} data-plan={p.id}>
+                <div className="row-between" style={{ flexWrap: 'nowrap' }}><span className="ellipsis" style={{ fontSize: 13 }}>{p.name || p.id}</span><StatusBadge status={p.status} /></div>
+                <div className="row-between" style={{ flexWrap: 'nowrap', marginTop: 4 }}><span className="wb-sub">{p.strategy} · {p.episodes} ep · v{p.version}</span>{p.id === list.data?.active_plan_id && <span className="badge badge-accent">REC</span>}</div>
+                {done > 0 && <div className="progress" style={{ marginTop: 6, height: 3 }}><span style={{ width: `${(100 * done) / Math.max(1, p.episodes)}%`, background: 'var(--ok)' }} /></div>}
+              </button>
+            );
+          })}
+          {list.data && !plans.length && <div className="small muted" style={{ padding: 20 }}>No plans yet.</div>}
+        </div>
+        <div className="wb-foot"><label className="check" style={{ fontSize: 12 }}><input type="checkbox" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} />Show archived</label></div>
+      </aside>
+      <section className="wb-main">
+        {planId ? <div className="wb-body"><PlanEditor key={planId} planId={planId} meta={meta.data} activeId={list.data?.active_plan_id} onChanged={list.reload} /></div>
+          : <div className="wb-empty"><Empty icon={<I.planning />} title="No plan open" action={<button className="btn btn-primary" onClick={() => setCreating(true)}>Create a collection plan</button>}>A plan decides, episode by episode, where objects and targets go, which scenario is demonstrated and what the instruction is. Record then follows it.</Empty></div>}
+      </section>
       <NewPlanModal open={creating} onClose={() => setCreating(false)} meta={meta.data} onCreated={(id) => { setCreating(false); list.reload(); go(`/planning/${id}`); }} />
     </div>
   );

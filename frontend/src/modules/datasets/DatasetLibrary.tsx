@@ -13,10 +13,49 @@ import {
   Select, StatusBadge, Switch, Tabs, fmt, useToast,
 } from '@/design/ui';
 import { useLoad, useTopic } from '@/hooks/data';
-import { Page } from '../shared';
 
+/** 04 · Data, in the Physical AI Manager workbench layout: datasets on the left, the open
+ *  dataset (overview, episodes, viewer, validation, publishing, export) on the right. */
 export default function DatasetLibrary({ datasetId }: { datasetId?: string }) {
-  return datasetId ? <DatasetDetail id={datasetId} /> : <DatasetList />;
+  const ds = useDatasetList();
+  const { go } = useRouter();
+  const [q, setQ] = useState('');
+  const list = (ds.data?.list || []).filter((d) => !q || d.id.toLowerCase().includes(q.toLowerCase()));
+  return (
+    <div className="workbench">
+      <aside className="wb-list">
+        <div className="wb-list-head">
+          <div><div className="label">Sheet 04</div><h2>Datasets</h2></div>
+          <button className="btn btn-sm btn-icon" onClick={ds.reload} aria-label="Refresh" title="Refresh"><I.refresh /></button>
+        </div>
+        <div style={{ padding: '0 12px 10px' }}><Input placeholder="Filter…" value={q} onChange={(e) => setQ(e.target.value)} style={{ padding: '5px 12px' }} /></div>
+        <div className="wb-items">
+          {ds.error ? <div style={{ padding: 12 }}><ErrorState error={ds.error} onRetry={ds.reload} /></div> : ds.loading && !ds.data ? <div style={{ padding: 12 }}><Loading rows={3} /></div> : list.map((d) => {
+            const c = d.review_counts || {};
+            const pending = (c.unreviewed || 0) + (c.needs_review || 0);
+            return (
+              <button key={d.id} className="wb-item" aria-selected={d.id === datasetId} onClick={() => go(`/datasets/${d.id}`)} data-dataset={d.id}>
+                <div className="wb-sub">{d.owner}</div>
+                <div className="ellipsis" style={{ fontSize: 13 }}>{d.name}</div>
+                <div className="row" style={{ gap: 4, marginTop: 4 }}>
+                  <span className="badge num">{d.total_episodes} ep</span><span className="badge">{d.codebase_version}</span>
+                  {(d.plans || []).length > 0 && <span className="badge badge-info">planned</span>}
+                  {pending > 0 && <span className="badge badge-warn num">{pending} pending</span>}
+                  {(d.integrity && d.integrity !== 'complete') && <span className="badge badge-danger">{d.integrity}</span>}
+                </div>
+              </button>
+            );
+          })}
+          {ds.data && !list.length && <div className="small muted" style={{ padding: 20 }}>No datasets found.</div>}
+        </div>
+        {ds.data?.source === 'trainer' && <div className="wb-foot">Read-only list from the training service (robot side offline).</div>}
+      </aside>
+      <section className="wb-main">
+        {datasetId ? <DatasetDetail id={datasetId} />
+          : <div className="wb-empty"><Empty icon={<I.datasets />} title="Select a dataset">Every LeRobot dataset recorded on this robot PC, read in place. Review episodes, check quality, publish or export; the files stay in their LeRobot format.</Empty></div>}
+      </section>
+    </div>
+  );
 }
 
 function useDatasetList() {
@@ -28,87 +67,77 @@ function useDatasetList() {
   }, [av.ros, av.trainer], 20000, av.known);
 }
 
-function DatasetList() {
-  const ds = useDatasetList();
-  const [q, setQ] = useState('');
-  const list = (ds.data?.list || []).filter((d) => !q || d.id.toLowerCase().includes(q.toLowerCase()));
-  return (
-    <Page intro="Every LeRobot dataset recorded on this robot PC, read in place. Review episodes, check quality, publish or export; the files stay in their LeRobot format."
-      actions={<><Input placeholder="Filter datasets…" value={q} onChange={(e) => setQ(e.target.value)} style={{ width: 240 }} /><Button icon={<I.refresh />} onClick={ds.reload}>Refresh</Button></>}>
-      {ds.data?.source === 'trainer' && <div style={{ marginBottom: 12 }}><Callout tone="warn" title="Read-only listing">The robot side is offline, so this list comes from the training service. Reviews, episode details and publishing need physical_ai_server.</Callout></div>}
-      <Panel flush>
-        {ds.error ? <ErrorState error={ds.error} onRetry={ds.reload} /> : ds.loading && !ds.data ? <div style={{ padding: 16 }}><Loading rows={4} /></div> : !list.length ? <Empty icon={<I.datasets />} title="No datasets">Recorded datasets appear here automatically.</Empty> : (
-          <div className="table-wrap"><table className="table">
-            <thead><tr><th>Dataset</th><th>Robot</th><th>Format</th><th className="right">Episodes</th><th className="right">Frames</th><th>Review</th><th>Integrity</th><th>Plans</th><th>Modified</th></tr></thead>
-            <tbody>{list.map((d) => {
-              const c = d.review_counts || {};
-              return (
-                <tr key={d.id} data-dataset={d.id}>
-                  <td><Link to={`/datasets/${d.id}`}><b style={{ fontWeight: 600 }}>{d.name}</b></Link><div className="tiny muted">{d.owner}</div></td>
-                  <td className="mono small">{d.robot_type}</td>
-                  <td><Badge>{d.codebase_version}</Badge></td>
-                  <td className="right num">{d.total_episodes}</td>
-                  <td className="right num">{fmt.num(d.total_frames)}</td>
-                  <td className="small">{c.total != null ? <span className="row" style={{ gap: 8 }}><span style={{ color: 'var(--ok)' }}>{c.accepted}✓</span><span style={{ color: 'var(--warn)' }}>{c.needs_review}?</span><span style={{ color: 'var(--danger)' }}>{c.rejected}✗</span><span className="muted">{c.unreviewed} new</span></span> : d.rejected_episodes ? `${d.rejected_episodes.length} rejected` : '—'}</td>
-                  <td><StatusBadge status={(d.integrity || (d.complete ? 'complete' : 'incomplete')) === 'complete' ? 'ok' : 'warn'} /></td>
-                  <td className="small">{(d.plans || []).map((p: any) => <Link key={p.id} to={`/planning/${p.id}`} className="badge">{p.name}</Link>)}</td>
-                  <td className="small muted nowrap">{fmt.ago(d.modified)}</td>
-                </tr>
-              );
-            })}</tbody>
-          </table></div>
-        )}
-      </Panel>
-    </Page>
-  );
-}
-
-type Tab = 'episodes' | 'viewer' | 'quality' | 'publish' | 'export';
+type Tab = 'overview' | 'episodes' | 'viewer' | 'quality' | 'publish' | 'export';
 
 function DatasetDetail({ id }: { id: string }) {
   const av = useAvailability();
   const { loc, go } = useRouter();
   const ov = useLoad(() => data('data.overview', { dataset_id: id }), [id, av.ros], 0, av.ros);
   const eps = useLoad(() => data('data.episodes', { dataset_id: id }), [id, av.ros], 0, av.ros);
-  const tab = (loc.query.get('tab') as Tab) || 'episodes';
+  const tab = (loc.query.get('tab') as Tab) || 'overview';
   const epIndex = loc.query.get('ep') != null ? Number(loc.query.get('ep')) : null;
   const setTab = (t: Tab, ep?: number) => go(`/datasets/${id}?tab=${t}${ep != null ? `&ep=${ep}` : epIndex != null ? `&ep=${epIndex}` : ''}`, true);
-  if (!av.ros && av.known) {
-    return <Page><Panel><Empty icon={<I.link />} title="Robot side disconnected" action={<Link to="/datasets" className="btn btn-sm">Back</Link>}>Episode details, reviews and publishing are read by physical_ai_server. {av.hint('ros_node')}</Empty></Panel></Page>;
-  }
   const o = ov.data;
   return (
-    <Page>
-      <div className="row" style={{ marginBottom: 14 }}>
-        <Link to="/datasets" className="btn btn-sm btn-ghost"><I.back />Datasets</Link>
-        <h2 style={{ margin: 0, fontSize: 18 }} className="mono">{id}</h2>
-        {o && <><Badge>{o.codebase_version}</Badge><Badge>{o.robot_type}</Badge><Badge>{o.fps} fps</Badge></>}
+    <>
+      <div className="wb-top">
+        <div style={{ minWidth: 0 }}><div className="label">Dataset</div><h2 className="ellipsis">{id}</h2></div>
+        <Tabs value={tab} onChange={(t) => setTab(t)} tabs={[{ id: 'overview', label: 'Overview' }, { id: 'episodes', label: 'Episodes' }, { id: 'viewer', label: 'Episode viewer' }, { id: 'quality', label: 'Validation' }, { id: 'publish', label: 'Publish' }, { id: 'export', label: 'Export' }]} />
       </div>
-      {ov.error ? <ErrorState error={ov.error} onRetry={ov.reload} /> : !o ? <Loading /> : (
-        <>
-          <div className="grid g4">
-            <div className="panel stat"><span className="label">Episodes</span><span className="stat-value">{o.total_episodes}</span><span className="stat-foot">{fmt.num(o.total_frames)} frames</span></div>
-            <div className="panel stat"><span className="label">Duration</span><span className="stat-value">{fmt.dur(o.duration_s)}</span><span className="stat-foot">{fmt.bytes(o.size_bytes)} on disk</span></div>
-            <div className="panel stat"><span className="label">Cameras</span><span className="stat-value">{o.cameras?.length ?? 0}</span><span className="stat-foot ellipsis">{(o.cameras || []).map((c: any) => c.key.split('.').pop()).join(', ')}</span></div>
-            <ReviewStat eps={eps.data?.episodes} />
-          </div>
-          <div className="mt" />
-          <Tabs value={tab} onChange={(t) => setTab(t)} tabs={[{ id: 'episodes', label: 'Episodes' }, { id: 'viewer', label: 'Episode viewer' }, { id: 'quality', label: 'Validation' }, { id: 'publish', label: 'Publish' }, { id: 'export', label: 'Export' }]} />
-          {tab === 'episodes' && <EpisodeTable id={id} eps={eps} onOpen={(i) => setTab('viewer', i)} />}
-          {tab === 'viewer' && <EpisodeViewer id={id} overview={o} eps={eps.data?.episodes || []} index={epIndex ?? eps.data?.episodes?.[0]?.episode_index ?? 0} onIndex={(i) => setTab('viewer', i)} onReviewed={eps.reload} />}
-          {tab === 'quality' && <Quality id={id} overview={o} />}
-          {tab === 'publish' && <Publish id={id} />}
-          {tab === 'export' && <Export id={id} overview={o} />}
-        </>
-      )}
-    </Page>
+      <div className="wb-body">
+        {!av.ros && av.known ? <Empty icon={<I.link />} title="Robot side disconnected">Episode details, reviews and publishing are read by physical_ai_server. {av.hint('ros_node')}</Empty>
+          : ov.error ? <ErrorState error={ov.error} onRetry={ov.reload} /> : !o ? <Loading /> : (
+          <>
+            {tab === 'overview' && <OverviewTab id={id} o={o} eps={eps.data?.episodes} onReview={() => setTab('episodes')} onPublish={() => setTab('publish')} />}
+            {tab === 'episodes' && <EpisodeTable id={id} eps={eps} onOpen={(i) => setTab('viewer', i)} />}
+            {tab === 'viewer' && <EpisodeViewer id={id} overview={o} eps={eps.data?.episodes || []} index={epIndex ?? eps.data?.episodes?.[0]?.episode_index ?? 0} onIndex={(i) => setTab('viewer', i)} onReviewed={eps.reload} />}
+            {tab === 'quality' && <Quality id={id} overview={o} />}
+            {tab === 'publish' && <Publish id={id} />}
+            {tab === 'export' && <Export id={id} overview={o} />}
+          </>
+        )}
+      </div>
+    </>
   );
 }
 
-function ReviewStat({ eps }: { eps?: any[] }) {
-  const c = { accepted: 0, rejected: 0, needs_review: 0, none: 0 };
-  (eps || []).forEach((e) => { const s = e.review?.status as keyof typeof c; c[s && s in c ? s : 'none']++; });
-  return <div className="panel stat"><span className="label">Review</span><span className="stat-value">{c.accepted}<small>accepted</small></span><span className="stat-foot">{c.needs_review} need review · {c.rejected} rejected · {c.none} unreviewed</span></div>;
+function OverviewTab({ id, o, eps, onReview, onPublish }: { id: string; o: any; eps?: any[]; onReview: () => void; onPublish: () => void }) {
+  const c = { accepted: 0, rejected: 0, needs_review: 0, none: 0, failed: 0 };
+  (eps || []).forEach((e) => { const st = e.review?.status as 'accepted' | 'rejected' | 'needs_review'; if (st && st in c) c[st]++; else c.none++; if (e.validation && !e.validation.ok) c.failed++; });
+  const total = eps?.length || o.total_episodes || 0;
+  const tile = (label: string, value: any, sub?: string, color?: string) => <div className="panel stat"><span className="label">{label}</span><span className="stat-value" style={{ color }}>{value}</span>{sub && <span className="stat-foot">{sub}</span>}</div>;
+  return (
+    <div className="stack" style={{ gap: 16 }}>
+      <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 12 }}>
+        {tile('Total episodes', total)}
+        {tile('Accepted', c.accepted, undefined, 'var(--ok)')}
+        {tile('Rejected', c.rejected, 'kept in dataset')}
+        {tile('Pending review', c.needs_review + c.none, `${c.needs_review} later · ${c.none} new`, c.needs_review + c.none ? 'var(--warn)' : undefined)}
+        {tile('Failed checks', c.failed)}
+        {tile('Duration', fmt.dur(o.duration_s))}
+        {tile('Size', fmt.bytes(o.size_bytes))}
+      </div>
+      <div className="night-panel cta-night">
+        <div><div className="label">Next · Training</div><div style={{ fontSize: 15, marginTop: 2 }}>Train a policy on this dataset</div></div>
+        <Link to={`/training/new?dataset=${encodeURIComponent(id)}`} className="btn">Train with this dataset →</Link>
+      </div>
+      <div className="grid g2">
+        <Panel title={<><span className="panel-code">F1</span>Dataset sheet</>}>
+          <KV items={[['Dataset', id], ['Task', (o.tasks || []).join(' · ') || '—'], ['Robot type', o.robot_type], ['Format', `LeRobot ${o.codebase_version}`], ['FPS', o.fps], ['Frames', fmt.num(o.total_frames)],
+            ['Cameras', (o.cameras || []).map((cam: any) => `${cam.key.split('.').pop()} ${cam.shape?.slice(0, 2).reverse().join('×') || ''}`).join(', ')], ['Joints', (o.state_names || []).join(', ')], ['Location', <span className="mono tiny">{o.path}</span>]]} />
+        </Panel>
+        <Panel title={<><span className="panel-code">F1b</span>Review progress</>}>
+          <div className="stack">
+            <div style={{ display: 'flex', height: 8, borderRadius: 99, overflow: 'hidden', background: 'var(--paper-3)' }}>
+              {[[c.accepted, 'var(--ok)'], [c.needs_review, 'var(--warn)'], [c.rejected, 'var(--err)']].map(([n, col], i) => <span key={i} style={{ width: `${(100 * (n as number)) / Math.max(1, total)}%`, background: col as string }} />)}
+            </div>
+            <div className="row small" style={{ gap: 12 }}><span>accepted <b className="num">{c.accepted}</b></span><span>needs review <b className="num">{c.needs_review}</b></span><span>rejected <b className="num">{c.rejected}</b></span><span>unreviewed <b className="num">{c.none}</b></span></div>
+            <div className="row"><button className="btn btn-sm" onClick={onReview}>Review episodes →</button><button className="btn btn-sm btn-sky" onClick={onPublish}>Publish →</button></div>
+          </div>
+        </Panel>
+      </div>
+    </div>
+  );
 }
 
 function EpisodeTable({ id, eps, onOpen }: { id: string; eps: ReturnType<typeof useLoad<any>>; onOpen: (i: number) => void }) {

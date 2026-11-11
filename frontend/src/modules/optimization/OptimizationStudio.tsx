@@ -8,31 +8,20 @@ import { LineChart } from '@/design/charts';
 import { I } from '@/design/icons';
 import {
   Badge, Button, Callout, Check, CodeBlock, Confirm, Empty, ErrorState, Field, KV, Loading, NumberInput, Panel,
-  Segmented, StatusBadge, Tabs, fmt, toneOf, useToast,
+  Segmented, StatusBadge, fmt, toneOf, useToast,
 } from '@/design/ui';
 import { useLoad } from '@/hooks/data';
-import { Page, Requires } from '../shared';
 
-export default function OptimizationStudio({ runId, sessionId }: { runId?: string; sessionId?: string }) {
-  return (
-    <Page>
-      <Requires service="trainer" what="Optimisation">
-        {sessionId ? <SessionDetail id={sessionId} /> : runId ? <Diagnosis id={runId} /> : <Overview />}
-      </Requires>
-    </Page>
-  );
-}
-
-function Overview() {
+export function OptimizeOverview() {
   const runs = useLoad(() => trainer.runs(), [], 6000);
   const sessions = useLoad(() => trainer.optSessions(), [], 6000);
-  const [tab, setTab] = useState<'runs' | 'sessions' | 'compare'>('runs');
+  const [tab, setTab] = useState<'runs' | 'sessions'>('runs');
   const list: any[] = runs.data?.runs || [];
   const ss: any[] = sessions.data?.sessions || [];
   return (
     <div className="stack">
       <p className="page-intro" style={{ margin: 0 }}>Find what limits a training (divergence, clipping, over-fitting, slow data loading), see which changes this LeRobot actually supports, and test them in controlled trials: a control and each change, run separately from the same checkpoint.</p>
-      <Tabs value={tab} onChange={setTab} tabs={[{ id: 'runs', label: 'Diagnose a run' }, { id: 'sessions', label: 'Optimisation history', badge: <Badge>{ss.length}</Badge> }, { id: 'compare', label: 'Compare runs' }]} />
+      <div><Segmented value={tab} onChange={setTab} options={[{ value: 'runs', label: 'Diagnose a run' }, { value: 'sessions', label: `Optimisation history (${ss.length})` }]} /></div>
       {tab === 'runs' && (
         <Panel flush>
           {runs.error ? <ErrorState error={runs.error} /> : !runs.data ? <div style={{ padding: 16 }}><Loading rows={3} /></div> : !list.length ? <Empty icon={<I.training />} title="No runs to diagnose" /> : (
@@ -43,7 +32,7 @@ function Overview() {
                   <tr key={r.id}><td><b style={{ fontWeight: 600 }}>{r.job_name}</b><div className="tiny muted">{fmt.ago(r.created_at)}</div></td><td><StatusBadge status={r.status} /></td><td>{r.policy}</td>
                     <td className="right num">{fmt.num(r.progress?.step)}</td><td className="right num">{fmt.sci(r.progress?.last?.loss)}</td>
                     <td>{w ? <Badge tone="info">{w.mode}</Badge> : <span className="muted small">off</span>}</td>
-                    <td><Link to={`/optimization/runs/${r.id}`} className="btn btn-sm" data-diagnose={r.id}>Diagnose<I.chevron /></Link></td></tr>
+                    <td><Link to={`/training/optimize/runs/${r.id}`} className="btn btn-sm" data-diagnose={r.id}>Diagnose<I.chevron /></Link></td></tr>
                 );
               })}</tbody></table></div>
           )}
@@ -54,7 +43,7 @@ function Overview() {
           {!ss.length ? <Empty icon={<I.optimize />} title="No optimisation sessions yet">Diagnose a finished or stopped run and create a session from its recommendations.</Empty> : (
             <div className="table-wrap"><table className="table"><thead><tr><th>Session</th><th>Status</th><th>Mode</th><th>Trials</th><th>Budget</th><th>Result</th><th>Created</th></tr></thead>
               <tbody>{ss.map((s) => (
-                <tr key={s.id}><td><Link to={`/optimization/sessions/${s.id}`}>{s.name}</Link></td><td><StatusBadge status={s.status} /></td><td>{s.mode}</td>
+                <tr key={s.id}><td><Link to={`/training/optimize/sessions/${s.id}`}>{s.name}</Link></td><td><StatusBadge status={s.status} /></td><td>{s.mode}</td>
                   <td className="small">{(s.trials || []).map((t: any) => <span key={t.id} className="row" style={{ gap: 4, display: 'inline-flex', marginRight: 6 }}><span className={`dot dot-${toneOf(t.status) === 'neutral' ? '' : toneOf(t.status)}`} />{t.candidate_id}</span>)}</td>
                   <td className="small num">{s.budget ? `${fmt.dur(s.budget.used_s)} / ${fmt.dur(s.budget.limit_s)}` : '—'}</td>
                   <td className="small ellipsis" style={{ maxWidth: 280 }}>{s.recommendation?.headline || '—'}</td><td className="small muted">{fmt.ago(s.created_at)}</td></tr>
@@ -62,7 +51,7 @@ function Overview() {
           )}
         </Panel>
       )}
-      {tab === 'compare' && <Compare runs={list} />}
+      
     </div>
   );
 }
@@ -104,7 +93,7 @@ export function Compare({ runs, initial = [] }: { runs: any[]; initial?: string[
 
 const SEV: Record<string, 'danger' | 'warn' | 'info'> = { critical: 'danger', high: 'danger', warning: 'warn', medium: 'warn', info: 'info', low: 'info' };
 
-function Diagnosis({ id }: { id: string }) {
+export function Diagnosis({ id }: { id: string }) {
   const toast = useToast();
   const { go } = useRouter();
   const dg = useLoad(() => trainer.diagnostics(id), [id], 10000);
@@ -131,12 +120,12 @@ function Diagnosis({ id }: { id: string }) {
   };
   const create = async () => {
     setBusy('create');
-    try { const s = await trainer.optCreate({ run_id: id, candidate_ids: sel, mode, settings }, proposal.token); toast.ok('Session created'); go(`/optimization/sessions/${s.id}`); } catch (e) { toast.error(e); } finally { setBusy(''); }
+    try { const s = await trainer.optCreate({ run_id: id, candidate_ids: sel, mode, settings }, proposal.token); toast.ok('Session created'); go(`/training/optimize/sessions/${s.id}`); } catch (e) { toast.error(e); } finally { setBusy(''); }
   };
   const setWatch = async (m: string) => { try { await trainer.watch(id, m, mode === 'auto' ? settings : undefined, watchAck); toast.ok(`Monitor: ${m}`); watches.reload(); } catch (e) { toast.error(e); } };
   return (
     <div className="stack" data-diagnosis={id}>
-      <div className="row"><Link to="/optimization" className="btn btn-sm btn-ghost"><I.back />Optimisation</Link><h2 style={{ margin: 0, fontSize: 18 }}>{run.job_name}</h2><StatusBadge status={run.status} /><Link to={`/training/runs/${id}`} className="btn btn-sm btn-ghost">Run details<I.chevron /></Link></div>
+      <div className="row"><Link to="/training/optimize" className="btn btn-sm btn-ghost"><I.back />Optimize</Link><h2 style={{ margin: 0, fontSize: 18 }}>{run.job_name}</h2><StatusBadge status={run.status} /><Link to={`/training/runs/${id}`} className="btn btn-sm btn-ghost">Run details<I.chevron /></Link></div>
       <div className="grid g4">
         <div className="panel stat"><span className="label">Issues</span><span className="stat-value">{d.issues.length}</span><span className="stat-foot">{d.issues.filter((i: any) => SEV[i.severity] === 'danger').length} critical</span></div>
         <div className="panel stat"><span className="label">Loss now / best</span><span className="stat-value" style={{ fontSize: 19 }}>{fmt.sci(d.summary.loss_last)} / {fmt.sci(d.summary.loss_min)}</span></div>
@@ -219,7 +208,7 @@ function Diagnosis({ id }: { id: string }) {
   );
 }
 
-function SessionDetail({ id }: { id: string }) {
+export function SessionDetail({ id }: { id: string }) {
   const toast = useToast();
   const s = useLoad(() => trainer.optSession(id), [id], 4000);
   const runs = useLoad(() => trainer.runs(), [], 0);
@@ -232,7 +221,7 @@ function SessionDetail({ id }: { id: string }) {
   return (
     <div className="stack" data-session={id}>
       <div className="row-between">
-        <div className="row"><Link to="/optimization" className="btn btn-sm btn-ghost"><I.back />Optimisation</Link><h2 style={{ margin: 0, fontSize: 18 }}>{x.name}</h2><StatusBadge status={x.status} /><Badge>{x.mode}</Badge></div>
+        <div className="row"><Link to="/training/optimize" className="btn btn-sm btn-ghost"><I.back />Optimize</Link><h2 style={{ margin: 0, fontSize: 18 }}>{x.name}</h2><StatusBadge status={x.status} /><Badge>{x.mode}</Badge></div>
         <div className="row">
           {!['concluded', 'stopped'].includes(x.status) && <Button size="sm" variant="danger" icon={<I.stop />} busy={busy === 'stop'} onClick={() => act('stop', () => trainer.optStop(id), 'Session stopped')}>Stop session</Button>}
           {!['concluded'].includes(x.status) && <Button size="sm" busy={busy === 'conclude'} onClick={() => act('conclude', () => trainer.optConclude(id), 'Concluded')}>Conclude</Button>}

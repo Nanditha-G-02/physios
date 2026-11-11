@@ -4,24 +4,21 @@ import { gateway } from '@/api/gateway';
 import { trainer } from '@/api/trainer';
 import { useAvailability, useSystem } from '@/app/system';
 import { I } from '@/design/icons';
-import { Badge, Button, Callout, CodeBlock, KV, Loading, Panel, Segmented, StatusBadge, fmt } from '@/design/ui';
+import { Badge, Button, Callout, CodeBlock, KV, Loading, Panel, StatusBadge, fmt } from '@/design/ui';
 import { useLoad } from '@/hooks/data';
 import { Page } from '../shared';
 
 export default function Settings() {
-  const { health, refreshHealth, theme, setTheme, rosLink } = useSystem();
+  const { health, refreshHealth, rosLink } = useSystem();
   const av = useAvailability();
   const cfg = useLoad(() => gateway.config(), []);
   const envs = useLoad(() => trainer.envs(), [av.trainer], 0, av.trainer);
   const tsys = useLoad(() => trainer.system(), [av.trainer], 0, av.trainer);
   const c = cfg.data;
   return (
-    <Page intro="PHYSIOS reads its configuration from the environment and physios/configuration/physios.env at start-up. Values shown here are the ones in effect.">
+    <Page label="Settings" title="Settings" intro="PHYSIOS reads its configuration from the environment and physios/configuration/physios.env at start-up. Values shown here are the ones in effect.">
       <div className="grid g2">
         <div className="stack">
-          <Panel title="Appearance">
-            <Segmented value={theme} onChange={setTheme} options={[{ value: 'dark', label: 'Dark' }, { value: 'light', label: 'Light' }]} />
-          </Panel>
           <Panel title="Service connections" actions={<Button size="sm" icon={<I.refresh />} onClick={refreshHealth}>Check now</Button>}>
             {!health ? <Loading rows={3} /> : (
               <div className="stack-sm">
