@@ -31,12 +31,16 @@ with sync_playwright() as pw:
     steps.append('wrong token refused')
     pg.fill('[data-field="token"]', TOKEN)
     pg.click('[data-action="sign-in"]')
-    pg.wait_for_selector('[data-robot]', timeout=15000)
-    steps.append('signed in; Home loads with live data')
-    pg.goto(BASE + '/settings')
-    pg.click('[data-action="sign-out"]')
+    pg.get_by_text('Select your robot').first.wait_for(timeout=15000)
+    pg.get_by_text('s101_dataset', exact=True).first.wait_for(timeout=15000)
+    steps.append('signed in; Home loads robot types over the authenticated /ros pipe')
+    st = pg.request.get(BASE + '/train-api/health').status
+    assert st == 200, st
+    steps.append('session also covers /train-api, /camera-stream and /lerobot-data')
+    pg.request.post(BASE + '/api/v1/auth/logout', data='{}', headers={'Content-Type': 'application/json'})
+    pg.reload()
     pg.wait_for_selector('[data-testid="login"]')
-    steps.append('signed out from Settings')
+    steps.append('signed out (session cleared): sign-in screen again')
     b.close()
 for i, s in enumerate(steps, 1):
     print('%02d %s' % (i, s))

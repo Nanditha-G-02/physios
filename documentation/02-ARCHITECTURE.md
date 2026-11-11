@@ -6,8 +6,9 @@
 PHYSIOS FRONTEND → PHYSIOS GATEWAY (API + adapters) → EXISTING SERVICES → ROBOT / HARDWARE
 ```
 
-The frontend only talks to the gateway: REST under `/api/v1`, plus one WebSocket (`/ros`) for
-live ROS topics. The gateway owns no robot logic. It translates requests and forwards them to
+The frontend only talks to the gateway, on one origin: REST under `/api/v1`, the same-origin
+paths the interface has always used (`/train-api`, `/camera-stream`, `/lerobot-data`), and one
+WebSocket (`/ros`) to rosbridge. The gateway owns no robot logic. It translates requests and forwards them to
 the service that already implements them, adds what was missing (aggregated health, CPU
 utilisation, activity feed, dataset file serving and export, structured errors), and serves
 the built frontend.
@@ -28,18 +29,14 @@ physios/
 │   ├── services/ros_api.py                typed operations on physical_ai_server (planning/data/task/…)
 │   ├── services/health.py                 real checks of every dependency, cached 3 s
 │   ├── services/system.py                 host metrics (reuses pam_trainer.environment; adds CPU %)
-│   └── services/activity.py               persistent activity feed
+│   ├── services/activity.py               persistent activity feed
+│   └── services/auth.py                   optional operator sign-in
 ├── backend/tests/test_gateway.py          unit + in-process integration tests
-├── frontend/                              Vite + React 18 + TypeScript
-│   └── src/
-│       ├── app/            shell (numbered rail, nav guard, link/robot status, services/notifications), router, system state
-│       ├── design/         theme.css (Physical AI Manager tokens and classes), ui.tsx (components), charts.tsx, icons.tsx
-│       ├── api/            http.ts (errors), gateway.ts, trainer.ts, rosbridge.ts (live topics)
-│       ├── hooks/          useLoad/useAction/useTopic/useNow
-│       ├── lib/            urdf.ts (URDF → three.js), hardwareTest.ts (one-joint test sequencer)
-│       └── modules/        home (+ dashboard overview), planning, recording, datasets, training
-│                           (+ optimization, evaluation tabs), inference (+ rollout tabs), robots, settings
-├── tests/e2e/                             devstack.py (stand-ins), physios_e2e.py (browser walk-through)
+├── frontend/                              the PHYSIOS interface (React 19, Redux, Tailwind; CRA build → dist/)
+│   └── src/                               pages/ (Home, Planning, Record, Data, Training, Inference,
+│                                          Robots), features/, components/, AuthGate.js (sign-in)
+├── docker/                                Dockerfile, docker-compose.yml, physios-docker.sh
+├── tests/e2e/                             devstack.py (stand-ins), auth_e2e.py (sign-in)
 └── documentation/
 ```
 
@@ -53,10 +50,16 @@ the brief also rules out.
   constraints: any Python ≥3.9, no packages, no virtualenv). It can import
   `pam_trainer.environment` instead of copying it. ROS stays in the container: the gateway
   speaks rosbridge, the same way the existing UI and the rollout worker do.
-* **New frontend on Vite + React + TypeScript.** CRA (old UI) is deprecated. TypeScript catches
-  contract drift. Dependencies are react, react-dom, three (URDF viewer) and two local font
-  packages (works offline). There is no router, state, chart or UI library: those are a few
-  hundred lines here, and the result is one consistent design system.
+* **The interface operators already use.** Since 1.2.0 the frontend is PHYSIOS's own copy of
+  the Physical AI Manager interface (v4 with the PHYSIOS name and the compact theme). It
+  matches the screenshots of the running system page by page: Home, Planning (Define task →
+  Validate & approve), Record (Plan mode / Free recording; Original, Processed, Simulation,
+  Multi-panel; Camera check), Data (Overview, Episodes, Publish, Tools), Training (New
+  training, Runs, Queue, Optimize, Evaluate, Compare, Storage, In container), Inference
+  (Container inference, Host rollout) and Robots. It is built and served by PHYSIOS. It does not
+  need the physical_ai_manager container or its nginx, because the gateway provides the
+  same-origin paths that nginx used to provide. 1.1.0's separately written TypeScript
+  frontend is kept in git (tag `physios-1.1.0`).
 
 ## Authentication, deployment
 
@@ -85,67 +88,58 @@ Browser ─ PHYSIOS frontend ─┐
    host rollout)   pam_trainer)
 ```
 
-## Design system and navigation
+## Interface
 
-PHYSIOS uses the design language of the existing Physical AI Manager, so operators see the
-same application they already know:
+* **Design.** Paper/ink/sky tokens, Geist Sans and Geist Mono (bundled), with the compact
+  theme: 14 px root, 14 px cards with hairline borders, a dot-grid canvas, a 78 px numbered
+  rail (01 Home … 06 Inference, R Robots) with the "Select and confirm a robot on Home first."
+  guard, and Link/Robot status at the rail foot.
+* **Same-origin paths served by the gateway** (formerly nginx in the physical_ai_manager
+  container):
 
-* **v1.1 compact professional layer** (end of `theme.css`): the same components with
-  less whitespace: 14 px card radius with hairline borders, a faint dot-grid canvas, a 78 px
-  rail, 30 px page titles, 44 px panel headers, compact controls and tables, work areas up to
-  1760 px wide. It is responsive: the console stacks below 1100 px, and below 640 px the rail
-  becomes a bottom navigation bar.
-* **Tokens.** Paper greys (`#F3F4F6`, `#ECEEF1`, `#E1E4E8`), ink (`#0B0C0E` … `#B4B9C1`), sky
-  blue accents (`#D6E3FF`, `#2457E6`), green / orange / red signals, 22 px card radius, pill
-  buttons and chips, Geist Sans and Geist Mono (bundled, offline). Light theme only, as before.
-* **Shell.** The 96 px left rail with numbered steps (01 Home … 06 Inference, R Robots), a
-  black capsule for the current page, green ticks for earlier steps and the "Select and
-  confirm a robot on Home first." guard; Link / Robot status and the services, notifications
-  and settings buttons at the foot of the rail.
-* **Page layouts.** Hero pages ("05 · Training" label, light fading title, grey intro, chips and
-  segmented tabs on the right) for Training, Robots and Settings; the Home page with the robot
-  drawing, robot selection card and six workflow tiles; the workbench layout (white list sheet
-  on the left, detail on the right) for Planning and Data; the console layout (robot type and
-  connection at the top left, cameras in the middle, white side sheet, Start / Stop / Retry /
-  Next / Finish control bar at the bottom) for Record and Inference.
-* **Navigation.** Training holds New training, Runs, Queue, Optimize, Evaluate, Compare and
-  Storage as tabs (`/training/...`). Inference holds Model check (dry run), Host rollout and
-  Container inference as tabs (`/inference`, `/inference/rollout`, `/inference/container`).
-  Settings is reached from the rail foot.
+  | Path | Gateway |
+  |---|---|
+  | `/ros` | WebSocket pipe to rosbridge (the interface no longer connects to `:9090` directly) |
+  | `/train-api/*` | training service `/api/*` (X-Forwarded-Host, upload limit) |
+  | `/camera-stream/*` | web_video_server, path and query unchanged |
+  | `/lerobot-data/<owner>/<name>/<file>` | dataset files, read-only, Range |
+
+* **Changes against the screenshot UI**, all small:
+  * the endpoints above;
+  * Robot Type and the Connected chip sit side by side on Record and Inference, so the chip no
+    longer covers the "PROCESSED · display only" label;
+  * an optional sign-in screen, shown only when `PHYSIOS_AUTH_TOKEN` is set.
 
 ## Module → back end map
 
 | Module | Gateway route(s) | Existing implementation |
 |---|---|---|
-| Home (robot selection, workflow, overview) | `ros/robot_type`, `health`, `system`, `activity`, `trainer/runs`, `trainer/optimization/sessions`, `trainer/rollouts`, `data/data.list_datasets`; `/ros` `/task/status`, `/heartbeat` | gateway, pam_trainer, physical_ai_server |
-| Planning Studio | `planning/plan.*`, `planning/meta`, `planning/robot.profile` | `physical_ai_server/planning` (engine, validation, versioning) |
-| Recording Studio | `planning/record.*`, `ros/task`, `ros/cameras`, `camera/stream`, `data/data.review`; `/ros` topics | recorder in physical_ai_server, web_video_server |
-| Dataset Library | `data/data.*`, `datasets/<id>/files/*`, `datasets/<id>/export`, `trainer/health-report`, `ros/hf`, `data/github.*` | planning/datasets.py, health_probe.py, HF worker |
-| Training Studio | `trainer/envs`, `datasets`, `models`, `plan`, `runs*`, `queue*`, `storage` | pam_trainer runner/planner |
-| Training · Optimize tab | `trainer/runs/<id>/diagnostics`, `trainer/optimization/*`, `trainer/compare`, `trainer/runs/<id>/watch` | diagnostics.py, tuning.py, optimizer.py |
-| Training · Evaluate / Compare tabs | `trainer/evaluations*`, `trainer/compare` | evaluations.py |
-| Inference · Model check tab | `trainer/rollouts/prepare`, `trainer/rollouts` (dry run), `rollouts/<id>`, `ros/policies` | rollout.py, rollout_worker.py |
-| Inference · Host rollout / Container tabs | `trainer/rollouts*` (run/pause/stop/estop/heartbeat/limits), `ros/task` (`start_inference` with `confirm`) | rollout_worker.py; physical_ai_server inference |
-| Robot Management | `trainer/robots/*`, `/ros` (ROS checks, live joints, hardware test) | pam_trainer/robots (archive, xacro, urdf, store, readiness) |
-| Settings | `config`, `health`, `trainer/envs`, `trainer/system` | gateway, pam_trainer |
+| 01 Home (robot selection, workflow) | `/ros` (`/get_robot_types`, `/set_robot_type`, planning services, `/task/status`, `/heartbeat`), `/train-api/health` | physical_ai_server, pam_trainer |
+| 02 Planning | `/ros` planning services | `physical_ai_server/planning` |
+| 03 Record (views, camera check, review) | `/ros` (`/task/command`, record services, topics), `/camera-stream` | recorder in physical_ai_server, web_video_server |
+| 04 Data (Overview, Episodes, Publish, Tools) | `/ros` data/HF services, `/lerobot-data`, `/train-api/health-report` | planning/datasets.py, HF worker, health_probe.py |
+| 05 Training (+ Optimize, Evaluate, Compare, Queue, Storage) | `/train-api/*` | pam_trainer runner/planner, diagnostics, optimizer, evaluations, storage |
+| 05 Training · In container | `/ros` (original ROBOTIS training services) | physical_ai_server training |
+| 06 Inference · Container inference | `/ros` (`/task/command` start_inference), `/camera-stream` | physical_ai_server inference |
+| 06 Inference · Host rollout | `/train-api/rollouts*` | rollout.py, rollout_worker.py |
+| R Robots | `/train-api/robots/*`, `/ros` (ROS checks, hardware test) | pam_trainer/robots |
+| (gateway) health, config, activity, auth | `/api/v1/*` | gateway |
 
 ## Live data
 
-`/ros` is a byte-level pipe to rosbridge after the WebSocket upgrade (Origin checked). The
-frontend's `api/rosbridge.ts` is a small rosbridge v2 client with reconnection. It subscribes
-(throttled) to `/task/status`, `/heartbeat`, joint states and HF status. The one browser-side
-publisher is the supervised hardware test, which is unchanged from v4 by design: the server
-issues the capped plan and verifies the samples. Every other command with an effect uses
-REST, so the gateway can validate it and log it.
+`/ros` is a byte-level pipe to rosbridge after the WebSocket upgrade (Origin checked, and
+sign-in when enabled). As in the Physical AI Manager, the interface uses roslib over this pipe
+for topics and for physical_ai_server service calls (task commands, planning and data
+services). The gateway's own REST API (`/api/v1`) remains available for scripts and tools.
 
 ## Safety model
 
 | Action | Who can trigger it | Guard |
 |---|---|---|
 | Recording | Start take / Start recording | operator click; the human leader arm drives the follower |
-| On-robot inference | Inference · Container inference | checklist + typed `run`; gateway rejects `start_inference` without `"confirm": true` (HTTP 428) |
-| Host rollout load | Inference · Host rollout / Model check | compatibility + token from `prepare`; worker publishes nothing |
-| Host rollout run | Inference · Host rollout / Container tabs | readiness all green + 4-item checklist + typed `run`; worker enforces envelope, per-step limits, stale-data and heartbeat holds, duration cap; E-STOP kills the worker after 0.5 s |
+| On-robot inference | Inference · Container inference → Start | operator click, as in the Physical AI Manager (the call goes over `/ros`). The gateway's `POST /api/v1/ros/task` keeps its `"confirm": true` rule (HTTP 428) for scripts. |
+| Host rollout load | Inference · Host rollout → Load model | compatibility + checklist; worker publishes nothing |
+| Host rollout run | Inference · Host rollout → Start moving | second confirmation; worker enforces envelope, per-step limits, stale-data and heartbeat holds, duration cap; emergency stop kills the worker |
 | Hardware test | Robot Management | Stage 2, connected, checklist, typed robot name → server token (180 s, single use) → Start motion; pre-hold detects wrong mapping; STOP; server re-checks samples |
 
 A software stop holds position. It is not a hardware emergency stop. The operator keeps the

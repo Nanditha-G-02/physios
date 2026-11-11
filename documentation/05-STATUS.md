@@ -1,42 +1,32 @@
-# PHYSIOS: verification status (2026-11-11)
+# PHYSIOS: verification status (2026-11-11, version 1.2.0)
 
-## Verified here
+## Verified here (PHYSIOS 1.2.0, final build)
 
 | Area | How | Result |
 |---|---|---|
-| Gateway | `backend/tests/test_gateway.py`: config, path traversal, Range, task-info typing, motion confirmation (428, nothing reaches ROS), activity, unreachable/missing/timeout ROS errors, health, trainer proxy (pass-through errors, Origin, upload, X-Forwarded-Host), camera proxy, dataset files/export, SPA serving, `/ros` WebSocket pipe | 20 passed (incl. sign-in: sessions, Bearer, rate limit, expiry, remote binding needs a token) |
-| Hardware-test sequencer (ported) | `frontend/src/lib/hardwareTest.test.ts` against a simulated servo: correct direction and distance, other joints held, inverted joint caught in pre-hold with no motion samples, STOP ends publishing, missing joint refused | 4 passed (+4 helper tests) |
-| Type safety / build | `tsc --noEmit` (strict), `vite build` | clean |
-| Whole application in a browser | `tests/e2e/physios_e2e.py` against `devstack.py`: real PlanningService behind a rosbridge stand-in with a simulated recorder, real pam_trainer with a stub `lerobot-train`, real gateway; plus a simulated 3-DOF arm behind a second gateway | all 14 steps OK (below) |
-| Start/stop | `start_physios.sh` started the trainer and gateway, reported health with hints when ROS/camera were down, printed the URL; `stop_physios.sh` stopped both; non-loopback host refused | OK |
-| Existing back ends unchanged | pam_trainer tests 91 passed/1 skipped; planning tests 45 passed; `git diff 169333b` outside `physios/` = `.gitignore` only | OK |
+| Gateway | `backend/tests/test_gateway.py`: config, path traversal, Range, task-info typing, motion confirmation (428), activity, ROS errors, health, trainer proxy, camera proxy, dataset files/export, SPA serving, `/ros` pipe, sign-in, and the interface's same-origin paths (`/train-api`, `/camera-stream`, `/lerobot-data`, incl. traversal and sign-in) | 22 passed |
+| Frontend build | `CI=true npm run build` (lint warnings fail the build) | compiled |
+| Frontend unit tests | `react-scripts test` | `imageStats` passes; the stock CRA `App.test.js` suite fails to run, unchanged from the Physical AI Manager |
+| Whole workflow in a browser, served by PHYSIOS | `physical_ai_manager/e2e/run_e2e.py http://127.0.0.1:8700` against `tests/e2e/devstack.py`: real PlanningService behind a rosbridge stand-in with a simulated recorder, real pam_trainer with a stub `lerobot-train`, real gateway | 26/26 |
+| Optimize tab | `opt_ui_check.py http://127.0.0.1:8700` against `devstack.py --seed` | 9/9 |
+| Sign-in | `tests/e2e/auth_e2e.py` (script install and Docker container) | 6/6 and 6/6 |
+| Docker | `docker compose up -d --build`, substitute Ubuntu 24.04 + Python 3.12.3 base (Docker Hub unreachable here) | healthy |
+| Screenshots | every page, tab and view of 1.2.0 (`documentation/screenshots/`) compared with the robot-PC screenshots of 11 Nov | same pages, tabs and layout; one intended difference (Connected chip beside Robot Type) |
+| Back ends unchanged | pam_trainer tests; planning tests | 91 passed, 1 skipped; 45 passed |
 
-E2E steps:
-
-1. Home: six live service checks OK in the overview.
-2. Home: robot selected and confirmed on physical_ai_server; workflow unlocked.
-3. Planning: create, generate, validate, apply fixes, approve, activate.
-4. Recording: plan-mode take through `/task/command`, review, accept.
-5. Datasets: library, video playback through the gateway, reject an episode, gzip export.
-6. Training: wizard, exact command, token start, finished.
-7. Optimisation: divergence diagnosed, trials planned, session created, control trial launched; a run without an environment is refused.
-8. Evaluation: robot trial recorded.
-9. Inference: compatibility and envelope from the recorded data, dry-run load. It fails because no torch is installed here, and the UI shows the worker log.
-10. Rollout: readiness, compatibility, editable envelope.
-11. Robots: zip upload, validation, register, 3D view.
-12. Robots: configuration, ROS checks (Stage 2), live joints, authorised one-joint test (Stage 3). 110 commands, none before Start; other joints held.
-13. Disconnected states.
-14. Settings: effective configuration.
-
-The UI was restyled on 2026-11-11 to the Physical AI Manager design (tokens, rail, Home,
-workbench and console layouts, Training and Inference tabs). The e2e above was re-run on the
-restyled UI; side-by-side screenshots against the old UI were compared for Home, Record,
-Data, Planning, Training and Inference.
-
-| Sign-in in a browser | `tests/e2e/auth_e2e.py` against a gateway with `PHYSIOS_AUTH_TOKEN` | 5/5 (401 without session, login screen, wrong token refused, sign-in loads Home, sign-out) |
-| Docker | image built from `docker/Dockerfile` with `docker/docker-compose.yml` (host network, non-root uid 1000, read-only mounts); health check reported *healthy*; all six service checks OK against the devstack; sign-in walk-through 5/5 against the container | OK, but on a substitute base (Ubuntu 24.04 + Python 3.12.3 imported locally) because Docker Hub is not reachable from this sandbox; the default `python:3.12-slim` base was not pulled here |
-| v4 back ends unchanged | `physical_ai_trainer` pytest; `physical_ai_server/test/planning` | 91 passed, 1 skipped; 45 passed |
-| Old UI (http://localhost) with the compact theme patch | `physical_ai_manager/e2e/run_e2e.py`, CRA build with CI=true | 26/26; compiled |
+The 26 steps:
+* Home lists robot types.
+* Planning: create, define the task, Dynamic configuration, the six planning types, generate,
+  edit one episode, validate, fix, approve.
+* Record:
+  * plan-mode takes, auto-advance;
+  * review off and on (reject, retake, approve); skip needs a reason;
+  * Processed and Simulation views; free recording.
+* Data:
+  * overview with the plan link; episode viewer with video and timelines; processed playback;
+  * review and delete; publish panel; Tools tab.
+* Training: dataset hand-over, command reviewed and confirmed.
+* Inference panel with the plan-instruction helper; plan progress in Planning.
 
 ## Not verified (needs the robot PC)
 
@@ -58,7 +48,7 @@ Data, Planning, Training and Inference.
 
 ## Known limitations
 
-* No pause/resume for recordings: physical_ai_server has no such command. Stop and Re-record
+* No pause/resume for recordings: physical_ai_server has no such command. Stop and Retry
   are offered instead.
 * Sign-in is a shared operator token, not per-user accounts. There is no TLS in the gateway: put
   a reverse proxy with HTTPS in front of it on any network you do not trust.
@@ -67,4 +57,9 @@ Data, Planning, Training and Inference.
 * The hardware test is driven by the browser (unchanged from v4). If the tab dies mid-test, the
   last command holds. A wrongly mapped joint is caught in the 0.6 s pre-hold, before the
   intended motion.
-* The frontend bundle includes three.js (≈630 kB, loaded only by Robot Management).
+* Container inference starts on a single click (the Physical AI Manager's behaviour); the
+  typed-confirmation dialog of 1.1.0 is gone with that frontend. Host rollout keeps its two
+  confirmations and the worker-side limits.
+* With sign-in enabled there is no sign-out button in the interface: call
+  `POST /api/v1/auth/logout` or let the session expire.
+* The frontend is Create React App (react-scripts 5), as in the Physical AI Manager.

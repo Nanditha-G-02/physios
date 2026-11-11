@@ -1,9 +1,9 @@
-# PHYSIOS 1.1.0 and Physical AI Platform v4: Project Report
+# PHYSIOS 1.2.0 and Physical AI Platform v4: Project Report
 
 Date: 11 November 2026
 Repository: `physical_ai_tools` (ROBOTIS, Apache-2.0), branch `physical-ai-manager-v2`
 Upstream base: `dcaa3ab` (ROBOTIS v1.0.0 with rmw_zenoh, 30 October 2026)
-PHYSIOS version: 1.1.0 (`physios/VERSION`) · PHYSIOS 1.1.0 commit: `2cea9e4`
+PHYSIOS version: 1.2.0 (`physios/VERSION`) · see section 7 for the commits
 
 ---
 
@@ -24,6 +24,7 @@ The software has gone through three stages:
 | **Physical AI Platform v4** (five phases) | 5 Nov | Training optimisation and custom robots | `pam_trainer` and the old UI, commits `3232e50` … `169333b` |
 | **PHYSIOS 1.0** | 6–11 Nov | A standalone application ("The Operating System for Physical Intelligence") with its own server and frontend. It reuses every back end unchanged and matches the Physical AI Manager's look and layout. | `physios/`, commits `ec8fbb2` … `f087aaa` |
 | **PHYSIOS 1.1** | 11 Nov | Compact professional UI, optional operator sign-in, Docker deployment, validation report, IEEE paper, screenshots | `physios/`, commit `2cea9e4` |
+| **PHYSIOS 1.2** | 11 Nov | The frontend is PHYSIOS's own copy of the running interface (the screenshots of 11 Nov), served by the PHYSIOS gateway | `physios/` |
 | Old UI compact theme | 11 Nov | The same compaction for the UI on http://localhost (the original app, renamed PHYSIOS) | `physical_ai_manager/`, commits `465c09a`, `7c9f117` |
 
 Everything is committed locally. The commits are **not pushed**: the sandbox cannot write to
@@ -319,32 +320,63 @@ Your robot-PC screenshots of 11 Nov show the original application on port 80 wit
 applied to that UI in commit `7c9f117`, delivered as `ui-compact-theme.patch`. It applies on
 v4 + the rename, and the 26-step walk-through passes.
 
-## 5. Implemented features (PHYSIOS, current)
+### 4.6 PHYSIOS 1.2.0: the running interface, served by PHYSIOS (11 Nov)
 
-| Module | What you can do | Back end |
+On 11 Nov you sent 31 screenshots of the interface running on http://localhost. You asked that
+the standalone app on port 8700 match them exactly, with no other changes.
+1.1.0's separately written TypeScript frontend differed inside several pages:
+* Record views;
+* Planning steps;
+* Data and Inference tabs;
+* no "In container" training.
+
+For an exact match, PHYSIOS now builds and serves its own copy of that interface
+(`physios/frontend`, from `physical_ai_manager/src` at v4 + rename + compact theme).
+
+Changes against the screenshots, all minimal:
+
+1. **Endpoints.** The interface reached rosbridge at `ws://<host>:9090` and web_video_server at
+   `http://<host>:8080`; nginx provided `/train-api`, `/camera-stream` and `/lerobot-data`. In
+   PHYSIOS all of these go through the gateway on one origin (`/ros` and the same paths), so the
+   physical_ai_manager container is not needed and sign-in covers everything.
+2. **Connected chip.** On Record and Inference it now sits beside Robot Type. In your
+   Processed-view screenshot it covered the "PROCESSED · display only" label.
+3. **Sign-in screen**, shown only when `PHYSIOS_AUTH_TOKEN` is set.
+
+What went away with the 1.1.0 frontend:
+* the Overview dashboard under Home and the Settings page;
+* Inference → Model check, and the services/notification popovers;
+* the phone-width layout;
+* the typed confirmation for container inference.
+
+That frontend is kept as git tag `physios-1.1.0`.
+
+## 5. Implemented features (PHYSIOS 1.2.0)
+
+The pages are those of the running interface (screenshots in `documentation/screenshots/`).
+
+| Page | What you can do | Back end |
 |---|---|---|
-| 01 Home | select and confirm the robot type (built-in and custom), see link/robot status, follow the six workflow steps, see the service overview (six live checks, hardware, recent activity) | physical_ai_server `/set_robot_type`, gateway health |
-| 02 Planning | create, generate, validate and fix, approve, version and activate collection plans; workspace view of item placements | planning `plan.*` |
-| 03 Record | plan-mode takes (Start/Retake, Stop, Retry, Next, Finish), skip/restore episodes, live cameras, follower joints, topic liveness, optional episode review after each take, free recording with your own task settings | `/task/command`, `/task/status`, planning `record.*`, `data.review` |
-| 04 Data | dataset library, overview with review progress, episode table, episode viewer with video, accept/reject, validation, Hugging Face / GitHub publishing, `.tar.gz` export | planning `data.*`, gateway dataset files |
-| 05 Training | five-step wizard with the exact command shown and token-confirmed start, run monitor and logs, checkpoints, queue, storage, comparison | pam_trainer |
-| 05 · Optimize | diagnose a run, plan trials from a pre-problem checkpoint, manual/automatic sessions, history | pam_trainer optimizer |
-| 05 · Evaluate | record robot trials per checkpoint; success rate with confidence interval | pam_trainer evaluations |
-| 06 · Model check | compatibility check and dry-run load: the model reads live cameras and joints, its output goes through the safety filter, nothing is sent to the robot | pam_trainer rollouts |
-| 06 · Host rollout | readiness checklist, editable joint envelope (only tighter than the training data), Load (no motion) → Run (checklist + typed `run`), Pause, Stop, E-STOP, outcome logging | pam_trainer rollout worker |
-| 06 · Container inference | run a policy saved on the robot side (ROBOTIS inference) after a checklist and typed `run` | `/task/command` START_INFERENCE with `confirm` |
-| R Robots | custom robot library, upload wizard, validation report, 3D viewer, configuration, ROS checks, supervised one-joint hardware test, readiness stages | pam_trainer robots |
-| Settings | effective configuration, review setting, service details | gateway config |
+| 01 Home | select and confirm the robot type (built-in and custom), server link / robot server / active robot status, six workflow tiles with live counts | physical_ai_server via `/ros`, pam_trainer |
+| 02 Planning | Define task → Planning type → Configure → Plan & edit → Validate & approve; workspace view, per-episode editing, collection order, versions | planning engine via `/ros` |
+| 03 Record | plan mode (bound takes, auto-advance, skip with a reason, optional review) or free recording (Task Information panel); views Original, Processed, Simulation, Multi-panel; Camera check; Start / Stop / Retry / Next / Finish | `/task/command`, `/task/status`, record services, `/camera-stream` |
+| 04 Data | Overview (review progress, "Train with this dataset"), Episodes (viewer, timelines, phase markers, review, delete), Publish (Hugging Face, GitHub metadata), Tools (original Data Tools) | data services via `/ros`, `/lerobot-data` |
+| 05 Training | New training (Dataset → Environment → Model → Configure → Review & start, exact command, confirmation), Runs, Queue, Optimize, Evaluate, Compare, Storage, In container (original ROBOTIS training) | `/train-api` (pam_trainer); physical_ai_server |
+| 06 Inference | Container inference (original panel plus plan-instruction helper); Host rollout (model, motion limits, cameras vs training data, Load model → Start moving) | physical_ai_server; pam_trainer rollout worker |
+| R Robots | custom robot library, upload, validation, 3D viewer, configuration, ROS checks, supervised one-joint hardware test, readiness stages | `/train-api/robots` |
 
-### Safety rules (unchanged by the restyle)
+### Safety rules
 
 The robot moves **only** after an explicit operator action:
 
-* Start take: recording, with you driving the follower through the leader arm.
-* Run: host rollout, after the readiness checks, a checklist and typed `run`.
-* Start: container inference, after a checklist and typed `run`; the gateway also enforces
-  `confirm: true`.
-* Start motion: the one-joint hardware test, using a server-issued single-use plan.
+* **Start** in Record: you drive the follower through the leader arm.
+* **Load model**, then **Start moving** in Host rollout. The worker enforces the joint
+  envelope, step and lead limits, stale-data and heartbeat holds, a maximum duration and the
+  emergency stop.
+* **Start** in Container inference. This is the Physical AI Manager's behaviour: one click.
+  1.1.0's extra typed confirmation went with that frontend. The gateway REST API keeps its
+  `confirm: true` rule for scripts.
+* **Start motion** in the one-joint hardware test, with a server-issued single-use plan.
 
 Starting PHYSIOS never moves the robot or starts a rollout. A software stop holds position; it
 is not a hardware emergency stop, so keep the power switch or a hardware e-stop within reach.
@@ -353,7 +385,20 @@ is not a hardware emergency stop, so keep the power switch or a hardware e-stop 
 
 ## 6. Testing results
 
-### 6.1 Current (11 November 2026, PHYSIOS 1.1.0, commit `2cea9e4`)
+### 6.0 Current (11 November 2026, PHYSIOS 1.2.0)
+
+| Suite | Result |
+|---|---|
+| Gateway pytest (incl. sign-in and the same-origin paths) | **22 passed** |
+| Frontend production build (`CI=true`, lint = error) | **compiled** |
+| Frontend unit tests (`react-scripts test`) | `imageStats` passes; the stock CRA `App.test.js` suite fails to run, unchanged from the Physical AI Manager |
+| Whole workflow served by PHYSIOS on :8700 (`physical_ai_manager/e2e/run_e2e.py`) | **26/26** |
+| Optimize tab served by PHYSIOS (`opt_ui_check.py`) | **9/9** |
+| Sign-in (`tests/e2e/auth_e2e.py`): script install / Docker container | **6/6, 6/6** |
+| Docker (substitute Ubuntu 24.04 + Python 3.12 base) | **healthy** |
+| Training service / planning engine (unchanged) | **91 passed, 1 skipped / 45 passed** |
+
+### 6.1 PHYSIOS 1.1.0 (11 November 2026, commit `2cea9e4`, TypeScript frontend, superseded)
 
 Full matrix and requirement traceability: `07-VALIDATION.md`.
 
@@ -413,7 +458,7 @@ The v4 back ends are unchanged by PHYSIOS: `git diff 169333b` outside `physios/`
 
 ## 7. Git commits
 
-Branch `physical-ai-manager-v2`: 16 commits on top of upstream `main`, none pushed.
+Branch `physical-ai-manager-v2`: 17 commits on top of upstream `main`, none pushed.
 
 | Commit | Date | Message | Size |
 |---|---|---|---|
@@ -433,7 +478,11 @@ Branch `physical-ai-manager-v2`: 16 commits on top of upstream `main`, none push
 | `7c9f117` | 2026-11-11 | Old UI: compact professional theme | 15 files, +134 / −69 |
 | `2cea9e4` | 2026-11-11 | PHYSIOS 1.1.0: compact professional UI, optional sign-in, Docker deployment, validation and IEEE paper | 49 files, +1,265 / −33 |
 
-This report's own update follows `2cea9e4`.
+| `a043837` | 2026-11-11 | PHYSIOS: project report for 1.1.0 | docs |
+
+PHYSIOS 1.2.0 (the running interface served by PHYSIOS, with this report) is the commit
+that follows `a043837` (`git log --oneline -1`). Tag `physios-1.1.0` marks the 1.1.0
+state.
 
 ### Deliverables
 
@@ -561,7 +610,7 @@ Common fixes seen on the robot PC:
 | `physios/documentation/02-ARCHITECTURE.md` | architecture, layers, authentication, deployment, design system and navigation, module map, safety model |
 | `physios/documentation/07-VALIDATION.md` | requirements traceability, automated test results, deployment validation |
 | `physios/documentation/paper/physios-ieee.pdf` | IEEE-format technical paper (LaTeX source alongside) |
-| `physios/documentation/screenshots/` | 19 screenshots of 1.1.0 |
+| `physios/documentation/screenshots/` | 23 screenshots of 1.2.0 (every page, tab and view) |
 | `physios/docker/` | Dockerfile, compose file, `physios-docker.sh` |
 | `physios/CHANGELOG.md`, `physios/VERSION` | version information |
 | `physios/documentation/03-API.md` | gateway API (`/api/v1`, `/ros`) |

@@ -16,7 +16,7 @@ services:
         BASE_IMAGE: ${PHYSIOS_BASE_IMAGE:-python:3.12-slim}
         UID: ${PHYSIOS_UID:-1000}
         GID: ${PHYSIOS_GID:-1000}
-    image: physios:1.1.0
+    image: physios:1.2.0
     container_name: physios
     network_mode: host
     restart: unless-stopped

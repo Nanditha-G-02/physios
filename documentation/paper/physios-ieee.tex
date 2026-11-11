@@ -30,16 +30,17 @@ usually spread across scripts, notebooks and loosely coupled web tools. This pap
 PHYSIOS, an independent application that unifies this workflow for the SO-101 arm on top of the
 ROBOTIS Physical AI Tools stack, ROS~2 and LeRobot. PHYSIOS adds a standard-library gateway
 that fronts the existing robot-side node, a host training service and camera server through
-one versioned API, and a dependency-light web frontend organised as a numbered workflow.
+one versioned API and one origin, and serves the operators' existing web interface, organised as
+a numbered workflow.
 Design goals were independence from the earlier user interface, unchanged robot-side code,
 explicit operator initiation for every motion, and honest reporting of unavailable services.
 We describe the architecture, the safety model (typed confirmations, server-enforced motion
 gating, a joint envelope derived from the demonstrations, heartbeat-based holding, and a staged
 readiness process for custom robots), the training-optimisation loop based on controlled trials
 from a pre-problem checkpoint, and a compact interface design. Validation so far uses
-real back-end code with simulated robot and trainer stand-ins: 20 gateway tests, 8 frontend
-tests, 91 training-service tests, 45 planning tests, a 14-step browser walk-through, a
-sign-in walk-through and a containerised deployment. Verification on the physical robot and
+real back-end code with simulated robot and trainer stand-ins: 22 gateway tests, 91
+training-service tests, 45 planning tests, a 26-step browser walk-through of the whole
+workflow, an optimisation-view check, sign-in walk-throughs and a containerised deployment. Verification on the physical robot and
 with GPU training is outstanding and is listed explicitly.
 \end{abstract}
 
@@ -114,15 +115,16 @@ optional authentication for network access.
 
 \section{Architecture}\label{sec:arch}
 Fig.~\ref{fig:arch} shows the layers. The browser talks only to the PHYSIOS gateway, which
-serves the built frontend and exposes \texttt{/api/v1} (REST) and \texttt{/ros}
-(a WebSocket pipe for live topics).
+serves the built frontend and exposes \texttt{/api/v1} (REST), \texttt{/ros} (a WebSocket pipe
+to rosbridge) and the same-origin paths the interface uses for training (\texttt{/train-api}),
+camera streams (\texttt{/camera-stream}) and dataset files (\texttt{/lerobot-data}).
 
 \begin{figure}[t]
 \centering
 \resizebox{\columnwidth}{!}{\begin{tikzpicture}[font=\scriptsize, node distance=3.2mm and 2mm,
   box/.style={draw, rounded corners=2pt, align=center, minimum height=6.5mm, inner sep=2pt},
   layer/.style={draw, rounded corners=3pt, fill=black!4, inner sep=3pt}]
-\node[box, minimum width=78mm] (fe) {PHYSIOS frontend (React, TypeScript): workflow 01--06, design system};
+\node[box, minimum width=78mm] (fe) {PHYSIOS frontend (the operators' interface, React): workflow 01--06};
 \node[box, minimum width=78mm, below=of fe, fill=blue!6] (gw) {PHYSIOS gateway (Python stdlib, :8700): auth $\cdot$ API routing $\cdot$ activity $\cdot$ health $\cdot$ config};
 \node[box, below=of gw, xshift=-28mm, minimum width=24mm] (ros) {rosbridge adapter\\(ROS services)};
 \node[box, right=of ros, minimum width=17mm] (tr) {trainer\\proxy};
@@ -164,11 +166,13 @@ the training service's environment module (imported, not copied);
 The gateway is about 1.6\,k lines of Python.
 
 \subsection{Frontend}
-The frontend is a Vite-built React~18 application in strict TypeScript (about 5.8\,k lines),
-with no router, state-management, chart or component library; three.js is loaded only for the
-robot viewer. Logic that is safety-relevant was ported from the earlier interface as code, not
-as UI: the URDF loader and the one-joint hardware-test sequencer, which has its own unit tests
-against a simulated servo.
+Operators asked that the application keep the interface they already use, page for page. PHYSIOS
+therefore builds and serves its own copy of that interface (React~19, Redux, Tailwind; about
+31\,k lines), rather than a re-implementation: an intermediate, separately written TypeScript
+frontend (version 1.1) differed in many page details and was replaced in version 1.2. Only
+three changes were made to the copy: all connections go to the gateway's single origin instead
+of to rosbridge, the camera server and an nginx proxy directly; the connection indicator no
+longer overlaps a camera view label; and an optional sign-in screen.
 
 \subsection{Deployment}
 Two equivalent paths exist. Scripts start the gateway (and the training service if it is not
@@ -228,15 +232,16 @@ training ready).
 \section{Safety Model}\label{sec:safety}
 Motion can originate only from four operator actions: starting a recording take (the follower
 then mirrors the leader arm), \emph{Run} in host rollout, \emph{Start} in container inference,
-and \emph{Start motion} in the one-joint hardware test. The safeguards are layered:
+and \emph{Start motion} in the one-joint hardware test (\emph{Run} corresponds to
+\emph{Start moving} in the interface). The safeguards are layered:
 \begin{enumerate}
 \item \emph{Start-up.} Neither the scripts nor the container start recording, inference or a
 rollout.
-\item \emph{Typed confirmation.} Run and Start require a checklist and typing ``run''. The gateway
-independently rejects inference commands without \texttt{confirm: true} (HTTP 428), so a script
-or a modified page cannot bypass the dialog.
-\item \emph{Two-step host rollout.} \emph{Load} starts the worker with the arm still; only
-\emph{Run} publishes commands.
+\item \emph{Two-step host rollout.} \emph{Load model} (after a configuration checklist) starts the
+worker with the arm still; only \emph{Start moving} publishes commands.
+\item \emph{Gateway rule for scripts.} The REST API rejects inference start commands without
+\texttt{confirm: true} (HTTP 428). Container inference started from the interface keeps the
+original single-click behaviour.
 \item \emph{Worker-side limits.} Each command is clipped to a joint envelope derived from the
 demonstrations (+5\,\%, tightenable, widenable by at most 10\,\%), a per-step change limit and
 a lead limit; stale camera or joint data ($>0.5$\,s) or a missing operator heartbeat ($>2$\,s)
@@ -250,22 +255,25 @@ limits withdraws the corresponding readiness stages.
 A software stop is not an emergency stop; the procedure requires a hardware stop within reach.
 
 \section{Interface Design}\label{sec:ui}
-The interface keeps the visual language operators already knew from the earlier tool---soft
-grey canvas, white sheets, black active capsules, numbered workflow rail---so that adoption
-does not require retraining. Version 1.1 optimises it for information density: hairline-bordered
-cards with 14\,px radius, a 78\,px rail, compact controls and tables, and work areas up to
-1760\,px wide. Recording and inference use a \emph{console} layout (Fig.~\ref{fig:record}):
-robot type and connection state top left, live cameras centre, the planned episode with its
-instruction and set-up on the right, and a control bar with Start/Stop/Retry/Next/Finish, phase,
-progress and host resources at the bottom. Below 1100\,px the console stacks vertically; below
-640\,px the rail becomes a bottom navigation bar. Every page shows a disconnected state with the
-back end's own explanation instead of empty or invented data (R4).
+The interface is the one operators already use, so adoption needs no retraining. It has a soft
+grey canvas, white sheets, black active capsules and a numbered workflow rail. A compact theme
+raises information density: a 14\,px root size tightens all spacing while text keeps its size;
+cards have a 14\,px radius and hairline borders; the rail is 78\,px wide; work areas reach
+1760\,px. Recording and inference use a \emph{console} layout (Fig.~\ref{fig:record}):
+\begin{itemize}
+\item robot type and connection state top left;
+\item a camera grid in the centre, switchable to processed, simulated or multi-panel views;
+\item the planned episode with its instruction and set-up on the right;
+\item at the bottom, a control bar showing phase, progress and host resources, with the buttons
+Start, Stop, Retry, Next and Finish.
+\end{itemize}
+Services that are unavailable are reported with their cause rather than as empty data (R4).
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=0.82\textwidth]{03-record.png}
-\caption{Record console in PHYSIOS 1.1 (simulated robot side): planned episode E002 with its
-instruction and set-up, live cameras and joints, and the control bar.}
+\includegraphics[width=0.82\textwidth]{03-record-plan.png}
+\caption{Record console in PHYSIOS 1.2 (simulated robot side): camera grid, the planned episode
+with its instruction and set-up, and the control bar.}
 \label{fig:record}
 \end{figure*}
 
@@ -278,18 +286,18 @@ three-joint arm. Table~\ref{tab:tests} summarises the results on the final build
 
 \begin{table}[t]
 \centering
-\caption{Automated validation of PHYSIOS 1.1.0 (11 Nov 2026)}
+\caption{Automated validation of PHYSIOS 1.2.0 (11 Nov 2026)}
 \label{tab:tests}
 \setlength{\tabcolsep}{3pt}
 \begin{tabular}{@{}lr@{}}
 \toprule
 Suite & Result \\
 \midrule
-Gateway (API, adapters, sign-in) & 20 passed \\
-Frontend units (hardware-test sequencer, helpers) & 8 passed \\
-Type check and production build & clean \\
-Browser walk-through, all modules & 14/14 steps \\
-Sign-in walk-through (script / container) & 5/5, 5/5 \\
+Gateway (API, adapters, sign-in, same-origin paths) & 22 passed \\
+Production build (lint warnings fail) & compiled \\
+Browser walk-through, whole workflow & 26/26 steps \\
+Optimisation views & 9/9 steps \\
+Sign-in walk-through (script / container) & 6/6, 6/6 \\
 Training service (unchanged) & 91 passed, 1 skipped \\
 Planning engine (unchanged) & 45 passed \\
 Container: health check, six service checks & healthy, 6/6 \\
@@ -297,13 +305,22 @@ Container: health check, six service checks & healthy, 6/6 \\
 \end{tabular}
 \end{table}
 
-The walk-through covers robot selection; plan creation, validation and activation; a
-plan-mode take with review; dataset browsing, video playback and export; a token-confirmed
-training run; diagnosis of a diverging run and a control trial; robot evaluation with a
-confidence interval; inference compatibility and envelope; and the custom-robot path up to an
-authorised one-joint test, in which 108 commands were published, none before Start, with all
-other joints held. In the inference step, the dry-run load fails as expected because the
-sandbox has no PyTorch; the interface shows the worker's log rather than a fabricated result.
+The walk-through runs against the interface served by PHYSIOS and covers:
+\begin{itemize}
+\item robot selection;
+\item planning with all six strategies, per-episode editing, validation, fixes and approval;
+\item plan-bound takes with automatic advance, the optional review (reject, retake, approve) and
+skipping with a reason;
+\item the processed and simulated views, and free recording;
+\item dataset overview, episode viewer, review and deletion, publishing and data tools;
+\item a confirmed training command; and
+\item the inference panel.
+\end{itemize}
+The optimisation check covers diagnosis, recommendations restricted to supported levers, and
+the comparison dashboard. The custom-robot path ran in the earlier v4 suites on the same
+interface code (upload, validation and viewer 12/12; readiness and the one-joint test 11/11,
+with zero commands before Start). The robot pages now reach the training service through the
+gateway, and the gateway tests cover that proxy.
 The container was built on a substitute Ubuntu~24.04/Python~3.12 base because public registries
 were unreachable from the sandbox.
 

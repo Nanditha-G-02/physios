@@ -1,5 +1,29 @@
 # PHYSIOS changelog
 
+## 1.2.0 (2026-11-11)
+
+* **The interface operators use, served by PHYSIOS.** The frontend is now PHYSIOS's own copy of
+  the Physical AI Manager interface: v4, with the PHYSIOS name and the compact theme, exactly
+  as on the robot PC's screenshots of 11 Nov. That covers every page, tab and view:
+  * Planning steps; Record views and camera check;
+  * Data Overview, Episodes, Publish and Tools;
+  * Training incl. In container; Inference Container and Host rollout; Robots.
+  1.1.0's separately written TypeScript frontend was replaced. It remains in git as tag
+  `physios-1.1.0`.
+* **Gateway** serves the interface's same-origin paths, so neither nginx nor the
+  physical_ai_manager container is needed:
+  * `/train-api/*` → training service;
+  * `/camera-stream/*` → web_video_server;
+  * `/lerobot-data/*` → dataset files with Range;
+  * rosbridge through `/ros` instead of `:9090`.
+  All of them are covered by sign-in when it is enabled.
+* **One visual fix:** on Record and Inference, Robot Type and the Connected chip sit side by
+  side. The chip no longer covers the "PROCESSED · display only" label.
+* Optional sign-in screen (only when `PHYSIOS_AUTH_TOKEN` is set).
+* Tests: gateway 20 → 22; the Physical AI Manager walk-through (26 steps) and the Optimize
+  check (9 steps) now run against PHYSIOS on :8700; `auth_e2e.py` updated. The TypeScript-only
+  `physios_e2e.py` and vitest suite were removed together with that frontend.
+
 ## 1.1.0 (2026-11-11)
 
 * **Compact professional UI.** Same layout, navigation and components as the Physical AI

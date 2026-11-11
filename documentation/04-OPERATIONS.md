@@ -62,15 +62,15 @@ any problems.
 Logs are in `physios/var/log/`: `gateway.log` (requests and events), `gateway.out`,
 `trainer.log` and `build.log`.
 
-**Development:** run `./start_physios.sh`, then `cd frontend && npm run dev`. Open
-http://localhost:5173: Vite serves the UI with hot reload and forwards `/api` and `/ros` to the
-gateway.
+**Development:** change `frontend/src`, then `cd frontend && npm run build` (output
+`frontend/dist`, which the gateway serves) and reload the browser.
 
 **Run at login (optional):** a systemd user unit can call
 `start_physios.sh --foreground` with `WorkingDirectory=…/physios`.
 
 **The old Physical AI Manager:** the container on port 80 is independent. Keep it as a
-fallback or stop it with `docker stop physical_ai_manager`. PHYSIOS does not use it.
+fallback or stop it with `docker stop physical_ai_manager`. PHYSIOS does not use it, but it
+shows the same interface.
 
 ## 4a. Running in Docker (optional)
 
@@ -111,7 +111,8 @@ PHYSIOS_ALLOW_REMOTE=1
 ```
 
 The browser then shows a sign-in screen. Sessions last 12 hours
-(`PHYSIOS_AUTH_SESSION_H`), and Settings → Access has Sign out. Scripts send
+(`PHYSIOS_AUTH_SESSION_H`). To sign out, call `POST /api/v1/auth/logout` or let the session
+expire; a gateway restart signs everyone out. Scripts send
 `Authorization: Bearer <token>`. After five wrong tokens from one address within a minute,
 that address waits a minute. Without a token the gateway refuses to start on a non-loopback
 address. Use HTTPS (a reverse proxy) if the network is not trusted.
@@ -137,19 +138,18 @@ address. Use HTTPS (a reverse proxy) if the network is not trusted.
 ## 6. Tests
 
 ```bash
-# gateway (20 tests, in-process fakes of rosbridge, trainer, camera; includes sign-in)
+# gateway (22 tests, in-process fakes of rosbridge, trainer, camera; sign-in and same-origin paths)
 cd physios/backend && python3 -m pytest -q tests
 
-# frontend unit tests (hardware-test sequencer against a simulated servo, router, URDF, format)
-cd physios/frontend && npm test
+# production build (lint warnings fail the build)
+cd physios/frontend && CI=true npm run build
 
-# type check + production build
-cd physios/frontend && npm run build
-
-# full browser walk-through of every module against stand-ins (no ROS / GPU needed)
+# browser walk-throughs of the interface served by PHYSIOS, against stand-ins (no ROS / GPU)
 cd physios/tests/e2e
-python3 devstack.py /tmp/physios-dev --seed      # terminal 1
-python3 physios_e2e.py /tmp/physios-dev /tmp/physios-shots
+python3 devstack.py /tmp/physios-dev             # terminal 1 (add --seed for the Optimize check)
+cd ../../../physical_ai_manager/e2e
+python3 run_e2e.py http://127.0.0.1:8700 /tmp/physios-shots    # 26 steps, whole workflow
+python3 opt_ui_check.py http://127.0.0.1:8700 /tmp/opt-shots   # Optimize tab (needs --seed)
 
 # sign-in walk-through against a gateway started with a token
 PHYSIOS_PORT=8710 PHYSIOS_AUTH_TOKEN=lab-operator-2026 python3 -m physios_gateway   # in backend/

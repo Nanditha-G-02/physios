@@ -6,4 +6,4 @@ training service (pam_trainer), web_video_server and the LeRobot dataset folders
 Standard library only. See documentation/03-API.md.
 """
 
-__version__ = '1.1.0'
+__version__ = '1.2.0'

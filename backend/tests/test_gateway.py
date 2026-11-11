@@ -466,3 +466,45 @@ def test_api_requires_sign_in_when_enabled(stack):
         assert st == 403
     finally:
         gw.auth = old
+
+
+# ------------------------------------------- same-origin paths of the PHYSIOS frontend (1.2)
+def test_frontend_compat_paths(stack):
+    # /train-api/* -> training service /api/* (what nginx did for the Physical AI Manager UI)
+    st, r = js(stack, '/train-api/runs?x=2')
+    assert st == 200 and r['query'] == '/api/runs?x=2'
+    st, r = js(stack, '/train-api/plan', {}, headers={'Origin': 'http://evil.example'})
+    assert st == 403
+    # /camera-stream/* -> web_video_server unchanged (path and query)
+    st, b, h = req(stack, '/camera-stream/snapshot?topic=/cam/image_raw/compressed&quality=50')
+    assert st == 200 and h['Content-Type'] == 'image/jpeg'
+    assert b.endswith(b'/snapshot?topic=/cam/image_raw/compressed&quality=50')
+    st, _, _ = req(stack, '/camera-stream/../etc/passwd')
+    assert st in (400, 404)
+    # /lerobot-data/<owner>/<name>/<file> -> dataset files with Range, no traversal
+    st, b, h = req(stack, '/lerobot-data/alice/cube_v1/videos/ep0.mp4', headers={'Range': 'bytes=0-3'})
+    assert st == 206 and b == bytes(range(4)) and h['Content-Type'] == 'video/mp4'
+    st, b, _ = req(stack, '/lerobot-data/alice/cube_v1/meta/info.json')
+    assert st == 200 and json.loads(b)['codebase_version'] == 'v2.1'
+    for bad in ('/lerobot-data/alice/cube_v1/..%2F..%2Fsecret.txt', '/lerobot-data/secret.txt',
+                '/lerobot-data/alice/cube_v1/nope.json'):
+        st, _, _ = req(stack, bad)
+        assert st in (400, 404), bad
+
+
+def test_compat_paths_require_sign_in_when_enabled(stack):
+    from physios_gateway.services.auth import Auth
+    gw = stack['gw']
+    old = gw.auth
+    gw.auth = Auth('integration-token-123')
+    try:
+        for p in ('/train-api/runs', '/camera-stream/snapshot?topic=/a', '/lerobot-data/alice/cube_v1/meta/info.json'):
+            st, _, _ = req(stack, p)
+            assert st == 401, p
+        st, _, _ = req(stack, '/lerobot-data/alice/cube_v1/meta/info.json',
+                       headers={'Authorization': 'Bearer integration-token-123'})
+        assert st == 200
+        st, _, _ = req(stack, '/static/js/main.js')  # the frontend itself stays public
+        assert st == 200
+    finally:
+        gw.auth = old

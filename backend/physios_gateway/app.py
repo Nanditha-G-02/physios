@@ -30,7 +30,7 @@ import threading
 import time
 import traceback
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import parse_qs, urlencode, urlparse
+from urllib.parse import parse_qs, unquote, urlencode, urlparse
 
 from physios_gateway import __version__
 from physios_gateway.adapters.datasets import Datasets, content_type, parse_range
@@ -46,6 +46,9 @@ from physios_gateway.services.system import SystemMonitor
 log = logging.getLogger('physios')
 TOPIC_RE = re.compile(r'^/[A-Za-z0-9_/]+$')
 MAX_JSON = 2 << 20
+
+
+PROTECTED = ('/api/', '/train-api', '/camera-stream/', '/lerobot-data/')
 
 
 class Gateway:
@@ -146,13 +149,20 @@ def make_handler(gw):
                     self._check_origin()
                 if path.startswith('/api/v1/auth/'):
                     return self._auth(method, path[len('/api/v1/auth/'):])
-                if (path.startswith('/api/') or path == '/ros') and \
+                if (path.startswith(PROTECTED) or path == '/ros') and \
                         not gw.auth.allowed(self.headers):
                     raise ApiError(401, 'auth_required', 'Sign in to PHYSIOS to continue.',
                                    'Enter the access token set in PHYSIOS_AUTH_TOKEN.')
                 if path == '/ros' and self.headers.get('Upgrade', '').lower() == 'websocket':
                     self._check_origin()
                     return self._ws_proxy()
+                # same-origin paths of the PHYSIOS frontend (the Physical AI Manager interface)
+                if path.startswith('/train-api/') or path == '/train-api':
+                    return self._trainer_proxy(method, path[len('/train-api'):], u.query)
+                if path.startswith('/camera-stream/') and method in ('GET', 'HEAD'):
+                    return self._camera_passthrough(path[len('/camera-stream'):], u.query)
+                if path.startswith('/lerobot-data/') and method in ('GET', 'HEAD'):
+                    return self._lerobot_data(path[len('/lerobot-data/'):])
                 if path.startswith('/api/v1/trainer/') or path == '/api/v1/trainer':
                     return self._trainer_proxy(method, path[len('/api/v1/trainer'):], u.query)
                 if path.startswith('/api/v1/camera/'):
@@ -338,6 +348,50 @@ def make_handler(gw):
             finally:
                 conn.close()
 
+        def _camera_passthrough(self, rest, query):
+            """/camera-stream/<path>?<query> -> web_video_server, unchanged (MJPEG streaming)."""
+            if not re.match(r'^/[A-Za-z0-9_./-]*$', rest or '/') or '..' in rest:
+                raise bad_request('Bad camera path.')
+            u = urlparse(cfg.camera_url)
+            conn = http.client.HTTPConnection(u.hostname, u.port or 80, timeout=10)
+            try:
+                conn.request('GET', (rest or '/') + ('?' + query if query else ''))
+                r = conn.getresponse()
+            except OSError as e:
+                conn.close()
+                raise ApiError(503, 'camera_unavailable', 'Camera server not reachable at %s '
+                               '(%s).' % (cfg.camera_url, e), CAMERA_HINT)
+            try:
+                self.send_response(r.status)
+                self.send_header('Content-Type', r.getheader('Content-Type') or
+                                 'application/octet-stream')
+                self.send_header('Cache-Control', 'no-store')
+                if r.getheader('Content-Length'):
+                    self.send_header('Content-Length', r.getheader('Content-Length'))
+                self.end_headers()
+                if self.command == 'HEAD':
+                    return
+                if conn.sock:
+                    conn.sock.settimeout(30)
+                while True:
+                    chunk = r.read1(65536)
+                    if not chunk:
+                        break
+                    self.wfile.write(chunk)
+                    self.wfile.flush()
+            except (BrokenPipeError, ConnectionResetError, socket.timeout):
+                pass
+            finally:
+                conn.close()
+
+        def _lerobot_data(self, rest):
+            """/lerobot-data/<owner>/<name>/<file...> -> that dataset's file (read-only, Range)."""
+            parts = unquote(rest).split('/')
+            if len(parts) < 3 or not all(parts):
+                raise not_found('Not found')
+            p = gw.datasets.file('%s/%s' % (parts[0], parts[1]), '/'.join(parts[2:]))
+            self._send_file(p)
+
         # ----------------------------------------------------------- datasets --
         def _dataset_files(self, rest):
             # <owner>/<name>/files/<path...>  or  <owner>/<name>/export
@@ -410,7 +464,7 @@ def make_handler(gw):
                 raise not_found('Not found')
             if not p.is_file():
                 p = root / 'index.html'  # client-side routing
-            immutable = '/assets/' in path
+            immutable = '/assets/' in path or path.startswith('/static/')
             self._send_file(p, 'public, max-age=31536000, immutable' if immutable
                             else 'no-cache')
 

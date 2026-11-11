@@ -1,31 +1,60 @@
 {
   "name": "physios-frontend",
+  "version": "1.2.0",
+  "description": "PHYSIOS frontend: the Physical AI Manager interface, served by the PHYSIOS gateway",
+  "author": "Kiwoong Park <pkw@robotis.com>",
+  "contributors": [
+    "Kiwoong Park <pkw@robotis.com>"
+  ],
+  "license": "Apache-2.0",
   "private": true,
-  "version": "1.1.0",
-  "description": "PHYSIOS - The Operating System for Physical Intelligence (frontend)",
-  "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "tsc --noEmit && vite build",
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "preview": "vite preview"
-  },
   "dependencies": {
-    "@fontsource/geist-mono": "5.3.0",
-    "@fontsource/geist-sans": "5.3.0",
-    "react": "18.3.1",
-    "react-dom": "18.3.1",
-    "three": "0.170.0"
+    "@fontsource/geist-mono": "^5.3.0",
+    "@fontsource/geist-sans": "^5.3.0",
+    "@reduxjs/toolkit": "^2.8.2",
+    "@testing-library/dom": "^10.4.0",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^13.5.0",
+    "clsx": "^2.1.1",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-hot-toast": "^2.5.2",
+    "react-icons": "^5.5.0",
+    "react-redux": "^9.2.0",
+    "react-scripts": "5.0.1",
+    "roslib": "^1.4.1",
+    "three": "^0.170.0",
+    "web-vitals": "^2.1.4"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "BUILD_PATH=dist react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject",
+    "start:debug": "REACT_APP_DEBUG=true react-scripts start"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
   },
   "devDependencies": {
-    "@types/react": "18.3.12",
-    "@types/react-dom": "18.3.1",
-    "@types/three": "0.170.0",
-    "@vitejs/plugin-react": "4.3.4",
-    "jsdom": "25.0.1",
-    "typescript": "5.6.3",
-    "vite": "5.4.21",
-    "vitest": "2.1.8"
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.3",
+    "tailwindcss": "^3.4.17"
   }
 }

@@ -1,0 +1,191 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Compact layout (v2.3): a 14 px root tightens every rem-based gap, padding and control height
+   by 12.5 %. Text sizes are set in px (tailwind.config.js), so they stay readable. */
+html {
+  font-size: 14px;
+}
+
+body {
+  margin: 0;
+  font-family: 'Geist Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  background: #f4f5f7;
+  color: #0b0c0e;
+  font-size: 13px;
+  letter-spacing: -0.003em;
+  font-feature-settings: 'ss01', 'tnum' 0;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: rgba(36, 87, 230, 0.16);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #cdd2d9 transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: #cdd2d9;
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background-color: #aeb4bd;
+}
+
+code {
+  font-family: 'Geist Mono', ui-monospace, Menlo, Monaco, Consolas, monospace;
+}
+
+/* ---- Design system (v2.2) ------------------------------------------------ */
+@layer components {
+  /* page canvas: soft grey with faint iridescent glows (reference style) */
+  .bp-grid {
+    background-color: #f4f5f7;
+    background-image:
+      radial-gradient(900px 520px at 88% -12%, rgba(173, 199, 255, 0.22), transparent 60%),
+      radial-gradient(700px 420px at -5% 105%, rgba(255, 205, 225, 0.14), transparent 60%),
+      radial-gradient(rgba(15, 23, 42, 0.045) 1px, transparent 1px);
+    background-size: auto, auto, 22px 22px;
+    background-attachment: fixed;
+  }
+  .sheet {
+    @apply bg-white rounded-card shadow-card relative;
+  }
+  .sheet-soft {
+    @apply bg-white/70 rounded-card relative border border-rule;
+  }
+  .sheet-head {
+    @apply flex items-center justify-between gap-3 px-4 pt-3 pb-2 min-h-[44px];
+  }
+  .sheet-title {
+    @apply text-[14px] font-semibold tracking-[-0.012em] text-ink;
+  }
+  .label {
+    @apply text-[10px] font-medium uppercase tracking-[0.08em] text-ink-3;
+  }
+  .num {
+    @apply font-mono tabular-nums;
+  }
+  .fade-text {
+    background: linear-gradient(90deg, #0b0c0e 0%, #0b0c0e 35%, #b4b9c1 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-pill border border-transparent
+      bg-paper-2 px-3.5 py-1.5 text-[12.5px] font-medium text-ink transition-all duration-150
+      select-none hover:bg-paper-3 active:scale-[0.98] disabled:cursor-not-allowed
+      disabled:bg-paper disabled:text-ink-4 disabled:active:scale-100
+      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-ink/40
+      focus-visible:ring-offset-1;
+  }
+  .btn-primary {
+    @apply btn bg-ink text-white hover:bg-ink-2 disabled:bg-paper-3 disabled:text-ink-4;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 1px 2px rgba(15, 23, 42, 0.18);
+  }
+  .btn-primary:disabled {
+    box-shadow: none;
+  }
+  .btn-sky {
+    @apply btn text-white disabled:bg-paper-3 disabled:text-ink-4;
+    background-image: linear-gradient(180deg, #3366f0, #2457e6);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 1px 2px rgba(36, 87, 230, 0.35);
+  }
+  .btn-sky:hover:not(:disabled) {
+    background-image: linear-gradient(180deg, #2a5be8, #1d4ad0);
+  }
+  .btn-sky:disabled {
+    background-image: none;
+    box-shadow: none;
+  }
+  .btn-danger {
+    @apply btn bg-signal-errbg text-signal-err hover:bg-[#f8d9d9];
+  }
+  .btn-ghost {
+    @apply btn bg-transparent hover:bg-paper-2;
+  }
+  .btn-sm {
+    @apply px-2.5 py-1 text-[11.5px];
+  }
+  .input {
+    @apply w-full rounded-lg border border-rule bg-white px-2.5 py-1.5 text-[12.5px] text-ink
+      transition-colors placeholder:text-ink-4 focus:border-sky-ink/50 focus:bg-white
+      focus:outline-none focus:ring-4 focus:ring-sky-ink/10 disabled:bg-paper-2 disabled:text-ink-3;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-pill bg-paper-2 px-2 py-px text-[10.5px]
+      font-medium text-ink-2;
+  }
+  .chip-ink {
+    @apply chip bg-ink text-white;
+  }
+  .chip-sky {
+    @apply chip bg-sky-100 text-sky-ink;
+  }
+  .chip-ok {
+    @apply chip bg-signal-okbg text-signal-ok;
+  }
+  .chip-warn {
+    @apply chip bg-signal-warnbg text-signal-warn;
+  }
+  .chip-err {
+    @apply chip bg-signal-errbg text-signal-err;
+  }
+  .hatch {
+    background-image: repeating-linear-gradient(-45deg, rgba(194, 65, 12, 0.45) 0 1.5px,
+        transparent 1.5px 7px);
+  }
+  .hatch-ink {
+    background-image: repeating-linear-gradient(-45deg, rgba(11, 12, 14, 0.07) 0 1px,
+        transparent 1px 6px);
+  }
+  .tick-corners {
+    background: none;
+  }
+  /* glossy orb like the reference hero */
+  .orb {
+    background:
+      radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0) 45%),
+      conic-gradient(from 210deg, #c9dbff, #f7d2e4, #fde3c8, #d5f0ff, #c9dbff);
+    filter: blur(28px);
+    opacity: 0.75;
+  }
+  /* dark "engineering" panel (reference) - used for the training console */
+  .night-panel {
+    @apply rounded-card text-white relative overflow-hidden;
+    background:
+      radial-gradient(600px 200px at 50% 0%, rgba(61, 123, 255, 0.26), transparent 70%),
+      linear-gradient(180deg, #0e1526, #070b16);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06), 0 10px 30px -18px rgba(7, 11, 22, 0.6);
+  }
+  /* compact data tables everywhere */
+  table th {
+    font-weight: 500;
+  }
+  .scroll-thin {
+    scrollbar-width: thin;
+    scrollbar-color: #c9cdd3 transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

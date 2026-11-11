@@ -1,13 +1,15 @@
 # PHYSIOS: The Operating System for Physical Intelligence
 
-Version 1.1.0 · see `CHANGELOG.md`
+Version 1.2.0 · see `CHANGELOG.md`
 
 PHYSIOS is a standalone application for the whole imitation-learning loop on a real robot:
 plan demonstrations, record them, curate the dataset, train and optimise a policy on this PC,
 evaluate it, and run it on the robot under supervision.
 
-It has its own frontend, application server, navigation, design system and start/stop
-scripts. It does **not** use or need the old Physical AI Manager web UI. It reuses the existing,
+It has its own application server, configuration, start/stop scripts and Docker deployment.
+Its frontend is the interface operators already use: PHYSIOS's own copy of the Physical AI
+Manager interface, with the PHYSIOS name and the compact theme. It is built and served by
+PHYSIOS, so it does **not** need the physical_ai_manager container or its nginx. It reuses the existing,
 working back ends unchanged:
 
 | Back end | What PHYSIOS uses it for |
@@ -19,7 +21,7 @@ working back ends unchanged:
 
 ```
 Browser ── PHYSIOS frontend (physios/frontend, served by the gateway)
-              │ /api/v1 (REST)      │ /ros (WebSocket)
+              │ /api/v1, /train-api, /camera-stream, /lerobot-data    │ /ros (WebSocket)
               ▼                     ▼
          PHYSIOS gateway (physios/backend, 127.0.0.1:8700)
            ├─ rosbridge adapter ──► physical_ai_server (ROS 2, rmw_zenoh)
@@ -32,7 +34,7 @@ Browser ── PHYSIOS frontend (physios/frontend, served by the gateway)
 
 ```bash
 cd /home/ihub/lerobot/physical_ai_tools/physios
-./start_physios.sh --with-ros      # first run builds the frontend (needs Node.js 18+)
+./start_physios.sh --with-ros      # physios.zip ships the built frontend; from source, the first run builds it (Node.js 18+)
 # open the printed URL, default http://127.0.0.1:8700
 ./stop_physios.sh
 ```
@@ -50,11 +52,18 @@ Without it, start them yourself; PHYSIOS shows which services are missing and ho
 
 ## Modules
 
-Same look, navigation and page layouts as the Physical AI Manager:
+Exactly the pages of the running interface (see `documentation/screenshots/`):
 
-01 Home (robot selection, workflow, service overview) · 02 Planning · 03 Record · 04 Data ·
-05 Training (new training, runs, queue, optimize, evaluate, compare, storage) · 06 Inference
-(model check, host rollout, container inference) · R Robots · Settings.
+* 01 Home: robot selection, workflow.
+* 02 Planning: Define task, Planning type, Configure, Plan & edit, Validate & approve.
+* 03 Record:
+  * Plan mode or Free recording;
+  * views: Original, Processed, Simulation, Multi-panel;
+  * Review episodes, Camera check.
+* 04 Data: Overview, Episodes, Publish, Tools.
+* 05 Training: New training, Runs, Queue, Optimize, Evaluate, Compare, Storage, In container.
+* 06 Inference: Container inference, Host rollout.
+* R Robots.
 
 ## Access
 
@@ -79,7 +88,13 @@ listen on the network (`PHYSIOS_HOST`, `PHYSIOS_ALLOW_REMOTE=1`).
 
 ## Safety
 
-The robot moves only after an explicit operator action: Start take (recording, with the
-leader arm), Run (host rollout, after a checklist and a typed confirmation), Start on-robot
-inference (checklist and typed confirmation, with `confirm: true` enforced by the gateway), or
-Start motion (one-joint hardware test, server-authorised plan). Start-up never moves the robot.
+The robot moves only after an explicit operator action:
+
+* **Start** in Record: the follower mirrors the leader arm.
+* **Load model**, then **Start moving** in Host rollout: two confirmations, and the worker
+  enforces the joint envelope, step limits, heartbeat and stale-data holds, and the emergency
+  stop.
+* **Start** in Container inference.
+* **Start motion** in the one-joint hardware test: a server-authorised plan.
+
+Start-up never moves the robot.

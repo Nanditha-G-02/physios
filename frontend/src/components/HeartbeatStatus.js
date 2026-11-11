@@ -1,0 +1,129 @@
+// Copyright 2025 ROBOTIS CO., LTD.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+// Author: Kiwoong Park
+
+import React from 'react';
+import { useSelector } from 'react-redux';
+import clsx from 'clsx';
+
+/**
+ * HeartbeatStatus Component
+ *
+ * Component that displays connection status by receiving heartbeat signals through ROS topics
+ * Monitors system connection status by periodically receiving std_msgs/Empty messages
+ */
+export default function HeartbeatStatus({
+  timeoutMs = 3000,
+  className = '',
+  showLabel = true,
+  size = 'medium',
+}) {
+  const heartbeatStatus = useSelector((state) => state.tasks.heartbeatStatus);
+  const lastHeartbeatTime = useSelector((state) => state.tasks.lastHeartbeatTime);
+
+  // Heartbeat status: 'connected', 'timeout', 'disconnected'
+  const getStatusInfo = () => {
+    switch (heartbeatStatus) {
+      case 'connected':
+        return {
+          dotColor: 'bg-green-500',
+          color: 'text-green-500',
+          bgColor: 'bg-green-100',
+          borderColor: 'border-green-300',
+          label: 'Connected',
+          description: `Last heartbeat: ${
+            lastHeartbeatTime ? new Date(lastHeartbeatTime).toLocaleTimeString() : 'Never'
+          }`,
+        };
+      case 'timeout':
+        return {
+          dotColor: 'bg-yellow-500',
+          color: 'text-yellow-500',
+          bgColor: 'bg-yellow-100',
+          borderColor: 'border-yellow-300',
+          label: 'Timeout',
+          description: `No heartbeat for ${timeoutMs}ms`,
+        };
+      case 'disconnected':
+      default:
+        return {
+          dotColor: 'bg-red-500',
+          color: 'text-red-500',
+          bgColor: 'bg-red-100',
+          borderColor: 'border-red-300',
+          label: 'Disconnected',
+          description: 'ROS connection not available',
+        };
+    }
+  };
+
+  // Status timing is maintained app-wide by useHeartbeatMonitor (see App.js).
+
+  const statusInfo = getStatusInfo();
+
+  // Size-based styles
+  const sizeClasses = {
+    small: {
+      container: 'px-2 py-1',
+      dot: 'w-2 h-2',
+      text: 'text-xs',
+    },
+    medium: {
+      container: 'px-3 py-2',
+      dot: 'w-3 h-3',
+      text: 'text-sm',
+    },
+    large: {
+      container: 'px-4 py-3',
+      dot: 'w-4 h-4',
+      text: 'text-base',
+    },
+  };
+
+  const currentSize = sizeClasses[size] || sizeClasses.medium;
+
+  const containerClasses = clsx(
+    'inline-flex',
+    'items-center',
+    'gap-2',
+    'rounded-full',
+    'border',
+    'transition-all',
+    'duration-200',
+    'select-none',
+    'shadow-md',
+    currentSize.container,
+    statusInfo.bgColor,
+    statusInfo.borderColor,
+    className
+  );
+
+  const dotClasses = clsx(
+    'rounded-full',
+    'transition-colors',
+    'duration-200',
+    currentSize.dot,
+    statusInfo.dotColor
+  );
+
+  const textClasses = clsx('font-medium', 'whitespace-nowrap', currentSize.text, statusInfo.color);
+
+  return (
+    <div className={containerClasses}>
+      <div className={dotClasses} />
+      {showLabel && <span className={textClasses}>{statusInfo.label}</span>}
+    </div>
+  );
+}
