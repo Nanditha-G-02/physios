@@ -19,9 +19,8 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import clsx from 'clsx';
 import toast from 'react-hot-toast';
-import packageJson from '../../package.json';
 import background from '../assets/home-background.jpg';
-import RobotIllustration from '../components/RobotIllustration';
+import HeroArm from '../components/HeroArm';
 import { useRosServiceCaller } from '../hooks/useRosServiceCaller';
 import { usePlanningService } from '../hooks/usePlanningService';
 import { useRosLink } from '../hooks/useConnectionMonitor';
@@ -90,7 +89,6 @@ export default function HomePage() {
   const [fetching, setFetching] = useState(false);
   const [saving, setSaving] = useState(false);
   const [fetchError, setFetchError] = useState('');
-  const [aim, setAim] = useState(null);
   const [glance, setGlance] = useState(null);
   const [now, setNow] = useState(Date.now());
   const [customRobots, setCustomRobots] = useState([]);
@@ -298,42 +296,19 @@ export default function HomePage() {
 
       <div className="relative h-full overflow-y-auto scroll-thin">
         <div className="mx-auto w-full max-w-[1320px] min-h-full px-6 md:px-10 py-6 flex flex-col justify-center gap-6">
-          {/* header */}
-          <div className="flex flex-wrap items-center justify-between gap-3 animate-rise">
-            <div className="flex items-center gap-3">
-              <span className="label">01 · Home</span>
-              <span className="h-px w-10 bg-ink-4" />
-              <span className="label">v{packageJson.version}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              {status.slice(0, 2).map((s) => (
-                <span key={s.key} className="chip bg-white shadow-card">
-                  <span className={clsx('h-1.5 w-1.5 rounded-full', dot[s.tone], s.pulse && 'animate-pulsedot')} />
-                  {s.label.toLowerCase()} {s.value}
-                </span>
-              ))}
-            </div>
-          </div>
-
           {/* hero */}
           <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,460px)] items-center">
             <div className="animate-rise min-w-0" style={{ animationDelay: '60ms' }}>
-              <h1 className="text-[36px] sm:text-[44px] md:text-[58px] font-light tracking-[-0.03em] leading-[0.95] fade-text">
+              <h1 className="text-[40px] sm:text-[52px] md:text-[66px] font-light tracking-[-0.035em] leading-[0.95] fade-text">
                 RawBot Studio
               </h1>
-              <p className="mt-4 text-[15px] text-ink-3 max-w-[460px]">
+              <p className="mt-4 flex items-center gap-3 text-[15px] md:text-[17px] font-light tracking-[-0.01em] text-ink-2 max-w-[520px]">
+                <span className="h-px w-8 shrink-0 bg-gradient-to-r from-sky-ink to-transparent" aria-hidden />
                 The Operating System for Physical Intelligence.
               </p>
-              <div
-                className="relative mt-6 w-full max-w-[520px]"
-                onPointerMove={(e) => {
-                  const r = e.currentTarget.getBoundingClientRect();
-                  setAim({ x: ((e.clientX - r.left) / r.width) * 2 - 1, y: ((e.clientY - r.top) / r.height) * 2 - 1 });
-                }}
-                onPointerLeave={() => setAim(null)}
-              >
+              <div className="relative mt-7 w-full max-w-[620px]">
                 <div className="absolute -inset-3 tick-corners pointer-events-none" />
-                <RobotIllustration className="w-full h-auto" aim={aim} />
+                <HeroArm className="w-full h-auto" />
               </div>
             </div>
 

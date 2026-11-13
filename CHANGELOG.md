@@ -2,6 +2,17 @@
 
 ## 2.0.0, renamed (2026-11-13)
 
+* **Home page redesign.**
+  * The "01 · Home · v2.0.0" line and the duplicate status chips above the title are gone;
+    the page starts with the larger *RawBot Studio* heading, followed by a refined tagline.
+  * New hero animation (`components/HeroArm.js`), replacing the line drawing: a shaded robot
+    arm with metal links, motor housings with bolts and status lights, a cable, a turntable
+    base and a parallel gripper. It picks up the cube and places it in the tray, using
+    two-link inverse kinematics.
+  * Also shown: an overhead camera with its field of view, a perspective floor with
+    shadows, and a live readout (task phase, joint angles, gripper, TCP height).
+  * It is decorative, not robot data, and it stops moving for visitors who prefer reduced
+    motion.
 * **Logo.** The *raw* wordmark is the logo: at the top of the rail, as the browser-tab icon
   and as the app icons (`favicon.ico`, `logo192.png`, `logo512.png`). It is a vector
   (`frontend/src/assets/raw-logo.svg`, drawn in the interface's ink colour); the source
