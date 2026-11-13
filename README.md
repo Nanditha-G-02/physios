@@ -2,6 +2,20 @@
 
 Version 1.2.0 · see `CHANGELOG.md`
 
+> **Where to put this repository.** PHYSIOS runs next to the ROBOTIS
+> [physical_ai_tools](https://github.com/ROBOTIS-GIT/physical_ai_tools) back ends
+> (physical_ai_server, physical_ai_trainer). Clone it **inside** that checkout as `physios/`:
+>
+> ```bash
+> cd ~/lerobot/physical_ai_tools
+> git clone https://github.com/<owner>/<this-repo>.git physios
+> cd physios/frontend && npm ci && npm run build && cd ..   # or use the release zip, which ships the built UI
+> ./start_physios.sh --with-ros                             # http://127.0.0.1:8700
+> ```
+>
+> The training service, custom-robot and v4 optimisation features live in
+> `physical_ai_trainer/` of that checkout, at the branch `physical-ai-manager-v2` (v4).
+
 PHYSIOS is a standalone application for the whole imitation-learning loop on a real robot:
 plan demonstrations, record them, curate the dataset, train and optimise a policy on this PC,
 evaluate it, and run it on the robot under supervision.

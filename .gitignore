@@ -1,0 +1,6 @@
+var/
+frontend/node_modules/
+frontend/dist/
+configuration/physios.env
+__pycache__/
+*.pyc
