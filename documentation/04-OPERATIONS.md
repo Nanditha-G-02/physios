@@ -234,7 +234,7 @@ Everything runs from the repository itself, without ROS, a GPU or a robot:
 ```bash
 cd backend
 python3 -m pytest -q tests            # gateway: 22
-python3 -m pytest -q trainer_tests    # training service + standalone layout: 96 (1 skipped)
+python3 -m pytest -q trainer_tests    # training service + standalone layout: 99 (1 skipped)
 cd ../robot/src/physical_ai_server
 python3 -m pytest -q test/planning    # planning engine: 45
 cd ../../../frontend && CI=true npm run build   # production build, lint warnings fail it

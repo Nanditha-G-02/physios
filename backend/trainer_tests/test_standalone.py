@@ -2,6 +2,7 @@
 from an earlier physical_ai_tools based installation."""
 
 import importlib.util
+import os
 import json
 from pathlib import Path
 import subprocess
@@ -121,3 +122,54 @@ def test_import_legacy_data(tmp_path):
     assert (run / 'run.json').read_text() == before
     # a second run keeps what is there
     assert mod.main([str(old), '--data', str(data)]) == 0
+
+
+def _old_with_root_file(tmp_path):
+    old = tmp_path / 'physical_ai_tools'
+    ws = old / 'docker' / 'workspace' / 'physical_ai_manager'
+    (ws / 'plans' / 'p1').mkdir(parents=True)
+    (ws / 'state.json').write_text('{"active_plan": "p1"}')
+    (ws / 'plans' / 'p1' / 'plan.json').write_text('{"id": "p1"}')
+    (old / 'docker' / 'huggingface').mkdir(parents=True)
+    return old, ws
+
+
+def test_import_skips_unreadable_files(tmp_path, monkeypatch):
+    """Files only root can read (written by the old container) are skipped and listed,
+    not a crash; the sudo command to import them is printed."""
+    old, ws = _old_with_root_file(tmp_path)
+    mod = _load_importer()
+    real = os.access
+    monkeypatch.setattr(mod.os, 'access',
+                        lambda p, m: False if str(p).endswith('state.json') else real(p, m))
+    data = tmp_path / 'data'
+    assert mod.main([str(old), '--data', str(data)]) == 3
+    assert (data / 'workspace' / 'physios' / 'plans' / 'p1' / 'plan.json').exists()
+    assert not (data / 'workspace' / 'physios' / 'state.json').exists()
+
+
+def test_import_with_owner_copies_and_never_changes_old_files(tmp_path):
+    if os.geteuid() != 0:
+        import pytest
+        pytest.skip('needs root (as with sudo)')
+    old, ws = _old_with_root_file(tmp_path)
+    os.chmod(ws / 'state.json', 0o600)
+    mod = _load_importer()
+    data = tmp_path / 'data'
+    assert mod.main([str(old), '--data', str(data), '--owner', '1234:1234']) == 0
+    new = data / 'workspace' / 'physios' / 'state.json'
+    st = new.stat()
+    assert (st.st_uid, st.st_gid) == (1234, 1234)
+    assert st.st_ino != (ws / 'state.json').stat().st_ino        # copied, not hard-linked
+    assert (ws / 'state.json').stat().st_uid == 0                # old file untouched
+    assert (data / 'workspace' / 'physios').stat().st_uid == 1234   # new folders too
+    assert mod.main([str(old), '--data', str(data), '--owner', 'x']) == 2
+
+
+def test_planning_store_files_are_readable(tmp_path):
+    sys.path.insert(0, str(PHYSIOS / 'robot' / 'src' / 'physical_ai_server'))
+    from physical_ai_server.planning import store
+    store.atomic_write_json(tmp_path / 'a.json', {'x': 1})
+    store.atomic_write_json(tmp_path / 's.json', {'t': 1}, mode=0o600)
+    assert (tmp_path / 'a.json').stat().st_mode & 0o777 == 0o644
+    assert (tmp_path / 's.json').stat().st_mode & 0o777 == 0o600

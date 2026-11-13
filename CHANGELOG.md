@@ -1,5 +1,22 @@
 # PHYSIOS changelog
 
+## 2.0.0, fix (2026-11-13, same day)
+
+* **Data import with root-owned files.** The 1.x robot container wrote some files, such as
+  `state.json` and the plans, as root with mode 0600. `import-legacy-data.py` stopped on the
+  first one. It now:
+  * skips and lists files it cannot read, and exits with code 3;
+  * prints the command that imports the rest:
+    `sudo python3 scripts/import-legacy-data.py OLD --owner $(id -u):$(id -g)`.
+
+  With `--owner`, files are copied, not hard-linked, and given to your user. The old
+  installation's files are not changed. `install.sh --import-from` now continues after a
+  partial import.
+* **Readable planning files.** The planning store writes files with mode 0644 (secrets stay
+  0600), so plans and reviews that the robot runtime writes as root can be read by the host
+  user and the gateway.
+* Tests: 3 more standalone tests (unreadable files, `--owner`, file modes).
+
 ## 2.0.0 (2026-11-13)
 
 **PHYSIOS is a standalone project.** It installs, runs, updates and deploys from its own

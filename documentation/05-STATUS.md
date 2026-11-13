@@ -7,11 +7,11 @@ cloud sandbox without ROS, a GPU or a robot.
 
 | Area | How | Result |
 |---|---|---|
-| Self-contained repository | `trainer_tests/test_standalone.py`: no code refers to `physical_ai_tools`, `physical_ai_trainer` or a parent folder; data-folder paths; container path mapping; LeRobot lock; data import from a 1.x layout | 5 passed |
+| Self-contained repository | `trainer_tests/test_standalone.py`: no code refers to `physical_ai_tools`, `physical_ai_trainer` or a parent folder; data-folder paths; container path mapping; LeRobot lock; data import from a 1.x layout | 8 passed |
 | Installation | `scripts/install.sh` in the fresh clone: requirements, `physios.env`, data folder, `npm ci` + build, config check | completed |
 | Start-up | `./start_physios.sh`: training service and gateway start from `backend/`; health shows trainer `physios_trainer 2.0.0`, data root `data/`, robot LeRobot `0.2.0` from `robot/lerobot.lock`; `./stop_physios.sh` stops both | OK |
 | Gateway | `backend/tests/test_gateway.py` | 22 passed |
-| Training service | `backend/trainer_tests` (unchanged v4 tests, now against `physios_trainer`) | 91 passed, 1 skipped (+5 standalone) |
+| Training service | `backend/trainer_tests` (unchanged v4 tests, now against `physios_trainer`) | 91 passed, 1 skipped (+8 standalone) |
 | Planning engine | `robot/src/physical_ai_server/test/planning` | 45 passed |
 | Frontend build | `CI=true npm run build` (lint warnings fail the build) | compiled |
 | Whole workflow in a browser | `tests/e2e/run_e2e.py http://127.0.0.1:8700` against `tests/e2e/devstack.py`: real PlanningService from `robot/src` behind a rosbridge stand-in with a simulated recorder, real training service with a stub `lerobot-train`, real gateway | 26/26 |

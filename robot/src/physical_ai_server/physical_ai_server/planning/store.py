@@ -66,8 +66,9 @@ def atomic_write_json(path, data, mode=None):
                 json.dump(data, f, indent=2, ensure_ascii=False)
                 f.flush()
                 os.fsync(f.fileno())
-            if mode is not None:
-                os.chmod(tmp, mode)
+            # mkstemp creates 0600 files; in the robot container (root) that made plans and
+            # reviews unreadable for the host user and the gateway. Secrets pass mode=0o600.
+            os.chmod(tmp, 0o644 if mode is None else mode)
             os.replace(tmp, path)
         finally:
             if os.path.exists(tmp):

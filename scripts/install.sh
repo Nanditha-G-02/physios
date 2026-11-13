@@ -59,7 +59,9 @@ ok "data folder: $DATA"
 
 if [[ -n "$IMPORT" ]]; then
   echo "importing from $IMPORT"
-  "$PY" "$PHYSIOS/scripts/import-legacy-data.py" "$IMPORT" --data "$DATA"
+  rc=0; "$PY" "$PHYSIOS/scripts/import-legacy-data.py" "$IMPORT" --data "$DATA" || rc=$?
+  if [[ $rc == 3 ]]; then warn "some old files belong to root: run the sudo command above, then carry on"
+  elif [[ $rc != 0 ]]; then fail "import failed (exit $rc)"; fi
 fi
 
 echo "frontend"
