@@ -1,5 +1,10 @@
 # PHYSIOS 1.2.0 and Physical AI Platform v4: Project Report
 
+> **History (up to PHYSIOS 1.2.0).** This report covers the v4 phases and PHYSIOS 1.x, which
+> ran inside a `physical_ai_tools` checkout. PHYSIOS 2.0.0 is a standalone repository with its
+> own training service, robot runtime and data folder: see `CHANGELOG.md`,
+> `02-ARCHITECTURE.md` and `07-VALIDATION.md`.
+
 Date: 11 November 2026
 Repository: `physical_ai_tools` (ROBOTIS, Apache-2.0), branch `physical-ai-manager-v2`
 Upstream base: `dcaa3ab` (ROBOTIS v1.0.0 with rmw_zenoh, 30 October 2026)

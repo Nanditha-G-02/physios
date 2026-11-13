@@ -114,7 +114,7 @@ refused or skipped).
 
 ## Training service
 
-`ANY /api/v1/trainer/<path>` → `pam_trainer /api/<path>`. Body and query are passed through,
+`ANY /api/v1/trainer/<path>` → training service (`physios_trainer`) `/api/<path>`. Body and query are passed through,
 and uploads are allowed up to `PHYSIOS_MAX_UPLOAD_MB`. Full list of routes: health, system,
 envs, datasets, models, policy-flags, plan, runs (log, metrics, diagnostics, resources,
 checkpoints, watch, stop, pause, resume, retry, metadata, export, keep), queue, storage,

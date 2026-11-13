@@ -1,5 +1,56 @@
 # PHYSIOS changelog
 
+## 2.0.0 (2026-11-13)
+
+**PHYSIOS is a standalone project.** It installs, runs, updates and deploys from its own
+repository (github.com/Nanditha-G-02/physios) and no longer needs a ROBOTIS
+`physical_ai_tools` checkout, its `physical_ai_server` / `physical_ai_trainer` folders, or the
+`physical_ai_manager` container.
+
+* **Training service in PHYSIOS:** `backend/physios_trainer`. This is the v4 training
+  service, formerly `pam_trainer` in `physical_ai_trainer/`, with the same API on
+  `127.0.0.1:8766`. `start_physios.sh` starts it from `backend/`. Tests are in
+  `backend/trainer_tests`.
+* **Robot runtime in PHYSIOS:** `robot/src`, built into the `physios-robot` image by
+  `docker/robot/Dockerfile`. It contains:
+  * the robot server with the planning engine;
+  * the interfaces and the bag recorder;
+  * rosbridge and web_video_server;
+  * LeRobot at the commit in `robot/lerobot.lock`.
+
+  `start_physios.sh --with-robot` (or `physios-docker.sh up --with-robot`) starts it. Like
+  before, it never moves the robot. The code derives from ROBOTIS physical_ai_tools
+  (Apache-2.0); see `NOTICE`.
+* **One data folder:** `PHYSIOS_DATA_DIR`, default `data/`. It holds datasets, plans,
+  reviews, runs, checkpoints and extra robot configs, and every part mounts it at a fixed
+  path. Robot configs in `data/robot-config/` are installed at every robot-runtime start.
+* **Installation:** `scripts/install.sh`, with options `--robot`, `--docker` and
+  `--import-from`.
+* **Data import:** `scripts/import-legacy-data.py` copies the data of a 1.x installation.
+  It hard-links files on the same disk, updates paths in records, and does not change the
+  old installation.
+* **Docker:**
+  * `docker/gateway/Dockerfile` (it was `docker/Dockerfile`) and `docker/robot/Dockerfile`;
+  * the compose services `physios-gateway` and `physios-robot` (profile `robot`);
+  * an automatic GPU override;
+  * `physios-docker.sh build|up|robot-up|robot-down|logs|shell|status|down`.
+* **Scripts:**
+  * `start_physios.sh --with-robot` replaces `--with-ros` (still accepted);
+  * new: `--no-gateway`;
+  * `stop_physios.sh --robot` replaces `--ros`.
+* **Configuration:**
+  * `PHYSIOS_REPO_ROOT` is gone;
+  * new: `PHYSIOS_DATA_DIR`, `PHYSIOS_ROS_DOMAIN_ID`, `PHYSIOS_ROBOT_START_ZENOH`,
+    `PHYSIOS_ROBOT_GPU`, `PHYSIOS_ROBOT_BASE_IMAGE`.
+* **Frontend:**
+  * the interface is unchanged;
+  * the instruction texts that named the old folders were updated;
+  * container paths for checkpoints are now `/physios/data/outputs/train/`.
+* **Tests:** the dev stack and the browser checks are now in `tests/e2e`. New
+  `test_standalone.py` (5 tests) checks the self-contained layout and the data import.
+* **Documentation:** README, architecture, operations (install, Docker, update, moving from
+  1.x), status and validation rewritten for the standalone layout.
+
 ## 1.2.0 (2026-11-11)
 
 * **The interface operators use, served by PHYSIOS.** The frontend is now PHYSIOS's own copy of

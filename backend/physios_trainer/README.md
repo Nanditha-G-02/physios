@@ -1,32 +1,35 @@
-# physical_ai_trainer — local training service
+# physios_trainer: the PHYSIOS training service
 
-The **Training** session of Physical AI Manager trains policies on this PC with the
-LeRobot already installed in one of your conda environments. The browser cannot start
-processes on the host, so this small service does it for the UI. It is plain Python
-(3.9+, standard library only) and runs **outside Docker**, next to your conda.
+The **Training** pages of PHYSIOS train policies on this PC with the LeRobot already
+installed in one of your Python environments (for example a conda env). The browser cannot
+start processes on the host, so this small service does it for the interface. It is plain
+Python (3.9+, standard library only) and runs **on the host, outside Docker**, next to your
+LeRobot environment and GPU.
 
 ```
-browser ── /train-api/ ──> nginx (physical_ai_manager container, host network)
-                              └─> 127.0.0.1:8766  physios_trainer  ──> lerobot-train (your conda env)
+browser ── /train-api/ ──> PHYSIOS gateway (:8700)
+                              └─> 127.0.0.1:8766  physios_trainer  ──> lerobot-train (your env)
 ```
 
 ## Start it
 
+`./start_physios.sh` starts it (and `./stop_physios.sh` stops it). By hand:
+
 ```bash
-cd ~/lerobot/physical_ai_tools/physical_ai_trainer
+cd ~/physios/backend
 python3 -m physios_trainer
 ```
 
-Keep the terminal open (or use the systemd unit below). Then open the Training session in the
-web UI. Options:
-
 | Option | Default |
 |---|---|
-| `--port` | `8766` (nginx proxies `/train-api/` to it) |
-| `--repo-root` | the `physical_ai_tools` checkout this folder is in |
-| `--data-dir` | `<repo>/docker/workspace/physical_ai_manager/training` — runs, logs, metrics, converted dataset copies |
-| `--dataset-root` (repeatable) | `<repo>/docker/huggingface/lerobot` and `~/.cache/huggingface/lerobot` |
+| `--port` | `8766` (`PHYSIOS_TRAINER_PORT`; the gateway proxies `/train-api/` to it) |
+| `--data-root` | `$PHYSIOS_DATA_DIR`, or `<physios>/data`: the PHYSIOS data folder shared with the robot runtime |
+| `--data-dir` | `<data-root>/workspace/physios/training`: runs, logs, metrics, converted dataset copies |
+| `--dataset-root` (repeatable) | `<data-root>/huggingface/lerobot` and `~/.cache/huggingface/lerobot` |
 | `--env NAME=PREFIX` (repeatable) | extra Python environments that `conda env list` does not show (e.g. a venv) |
+
+Checkpoints go to `<data-root>/outputs/train/`. The robot runtime sees them at
+`/physios/data/outputs/train/`, so Inference can load them in the container.
 
 It only listens on 127.0.0.1 and refuses other hosts; POST requests from another origin are refused.
 
@@ -71,8 +74,8 @@ without it the operator must confirm that check by hand.
 
 ### Using a trained model in the container Inference
 
-The Inference session runs inside the `physical_ai_server` container, whose LeRobot is pinned
-(0.2.x). A model trained with a different LeRobot minor version (e.g. 0.6.x, which stores its
+Container inference runs in the PHYSIOS robot runtime (`physios-robot`), whose LeRobot is
+pinned in `robot/lerobot.lock` (0.2.x). A model trained with a different LeRobot minor version (e.g. 0.6.x, which stores its
 normalisation in separate processor files) cannot be loaded there, so the UI disables
 "Use in Inference" and says why; run such a checkpoint on the host with the same LeRobot instead.
 When versions match and the checkpoint is inside a folder shared with the container, the button
@@ -83,10 +86,10 @@ fills in the container path.
 ```ini
 # ~/.config/systemd/user/physios-trainer.service
 [Unit]
-Description=Physical AI Manager training service
+Description=PHYSIOS training service
 
 [Service]
-WorkingDirectory=%h/lerobot/physical_ai_tools/physical_ai_trainer
+WorkingDirectory=%h/physios/backend
 ExecStart=/usr/bin/python3 -m physios_trainer
 Restart=on-failure
 # conda must be findable: add its bin folder if it is not on the default PATH

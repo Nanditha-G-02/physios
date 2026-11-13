@@ -9,18 +9,20 @@
 #                                    (Zenoh router, robot server, rosbridge, web_video_server;
 #                                    built from docker/robot on first use)
 #   ./start_physios.sh --no-trainer  do not start the training service
+#   ./start_physios.sh --no-gateway  do not start the gateway (it runs in Docker)
 #   ./start_physios.sh --foreground  run the gateway in this terminal (Ctrl+C stops it)
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BUILD=0; WITH_ROS=0; TRAINER=1; FG=0
+BUILD=0; WITH_ROS=0; TRAINER=1; FG=0; GATEWAY=1
 for a in "$@"; do
   case "$a" in
     --build) BUILD=1 ;;
     --with-robot|--with-ros) WITH_ROS=1 ;;
     --no-trainer) TRAINER=0 ;;
+    --no-gateway) GATEWAY=0 ;;
     --foreground) FG=1 ;;
-    -h|--help) sed -n '2,12p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,13p' "$0"; exit 0 ;;
     *) echo "unknown option: $a (see --help)"; exit 2 ;;
   esac
 done
@@ -112,7 +114,10 @@ if port_open "$RB_HOST" "$RB_PORT"; then ok "rosbridge reachable"; else warn "ro
 
 # ---- 5. gateway ------------------------------------------------------------------------------
 say "PHYSIOS gateway (http://$HOST:$PORT)"
-if alive "$VAR/run/gateway.pid"; then
+if [[ $GATEWAY == 0 ]]; then
+  if http_ok "http://$HOST:$PORT/api/v1/auth/session"; then ok "not started here (--no-gateway); one is answering"
+  else warn "not started (--no-gateway) and none is answering: ./docker/physios-docker.sh up"; fi
+elif alive "$VAR/run/gateway.pid"; then
   warn "already running (pid $(cat "$VAR/run/gateway.pid")); use ./stop_physios.sh first to restart"
 elif port_open "$HOST" "$PORT"; then
   fail "port $PORT is used by another program (set PHYSIOS_PORT)"

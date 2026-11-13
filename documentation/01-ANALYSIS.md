@@ -1,5 +1,10 @@
 # PHYSIOS: Phase 1 repository and patch analysis
 
+> **History (PHYSIOS 1.x).** This analysis describes PHYSIOS when it lived inside a
+> `physical_ai_tools` checkout. Since 2.0.0 PHYSIOS is standalone: `pam_trainer` is
+> `backend/physios_trainer`, the robot server is the PHYSIOS robot runtime in `robot/`, and
+> data lives in `PHYSIOS_DATA_DIR`. See `02-ARCHITECTURE.md`.
+
 Analysed tree: `physical_ai_tools`, branch `physical-ai-manager-v2`, upstream base `dcaa3ab`
 (ROBOTIS "ci: publish Docker images…", v1.0.0 with rmw_zenoh).
 

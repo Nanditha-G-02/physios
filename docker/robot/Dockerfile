@@ -51,6 +51,7 @@ RUN git init -q /opt/lerobot && cd /opt/lerobot \
  && sed -i '/"torch[^\"]*",/d; /"torchvision[^\"]*",/d' pyproject.toml \
  && pip install --ignore-installed -e . \
  && pip install -e ".[smolvla]" \
+ && pip install pyzmq psutil matplotlib requests \
  && pip install setuptools==68.1.2 'numpy<2'
 
 # the PHYSIOS robot packages

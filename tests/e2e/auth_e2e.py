@@ -2,8 +2,8 @@
 """Browser check of the optional sign-in (PHYSIOS_AUTH_TOKEN).
 
 Start a gateway with a token, for example next to the devstack:
-    cd physios/backend && PHYSIOS_PORT=8710 PHYSIOS_AUTH_TOKEN=lab-operator-2026 python3 -m physios_gateway
-then:  python3 auth_e2e.py http://127.0.0.1:8710 lab-operator-2026 [shots_dir]
+    cd backend && PHYSIOS_PORT=8710 PHYSIOS_AUTH_TOKEN=lab-operator-2026 python3 -m physios_gateway
+then:  python3 tests/e2e/auth_e2e.py http://127.0.0.1:8710 lab-operator-2026 [shots_dir]
 """
 import sys
 from pathlib import Path
