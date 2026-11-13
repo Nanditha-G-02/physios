@@ -1,14 +1,18 @@
-# PHYSIOS: The Operating System for Physical Intelligence
+# RawBot Studio: The Operating System for Physical Intelligence
 
 Version 2.0.0 · see `CHANGELOG.md` · https://github.com/Nanditha-G-02/physios
 
-PHYSIOS is a standalone application for the whole imitation-learning loop on a real robot:
+RawBot Studio was called **PHYSIOS** until 13 November 2026. Commands, folders, Docker
+containers and settings keep the `physios` names (`./start_physios.sh`, `PHYSIOS_*`), so
+existing installations keep working unchanged.
+
+RawBot Studio is a standalone application for the whole imitation-learning loop on a real robot:
 * plan demonstrations and record them;
 * curate the dataset;
 * train and optimise a policy on this PC, then evaluate it;
 * run it on the robot under supervision.
 
-**PHYSIOS is one self-contained repository.** It has its own frontend, gateway, training
+**RawBot Studio is one self-contained repository.** It has its own frontend, gateway, training
 service, robot runtime, configuration, data folder, Docker images and scripts. It installs,
 runs and updates from this repository alone. It does **not** need a ROBOTIS
 `physical_ai_tools` checkout, the `physical_ai_server` / `physical_ai_trainer` folders of one,
@@ -27,12 +31,12 @@ or the `physical_ai_manager` container.
 | Deployment | `scripts/`, `start_physios.sh`, `stop_physios.sh`, `docker/` | |
 
 ```
-Browser ── PHYSIOS frontend (served by the gateway)
+Browser ── RawBot Studio frontend (served by the gateway)
              │ /api/v1, /train-api, /camera-stream, /lerobot-data       │ /ros (WebSocket)
              ▼                                                          ▼
-        PHYSIOS gateway  (backend/physios_gateway, 127.0.0.1:8700)
-          ├─ trainer proxy ──► PHYSIOS training service (backend/physios_trainer, :8766, host)
-          ├─ rosbridge ──────► PHYSIOS robot runtime (robot/, physios-robot container)
+        RawBot Studio gateway  (backend/physios_gateway, 127.0.0.1:8700)
+          ├─ trainer proxy ──► RawBot Studio training service (backend/physios_trainer, :8766, host)
+          ├─ rosbridge ──────► RawBot Studio robot runtime (robot/, physios-robot container)
           │                      physical_ai_server node · planning engine · bag recorder
           ├─ camera proxy ───► web_video_server (:8080, in the robot runtime)
           └─ dataset files ──► data/huggingface/lerobot (read-only)
@@ -40,8 +44,8 @@ Browser ── PHYSIOS frontend (served by the gateway)
                       robot runtime ◄── ROS 2 (rmw_zenoh) ──► your arm's ROS 2 driver
 ```
 
-The arm's own ROS 2 driver is not part of PHYSIOS, as in 1.x. That driver is the robot
-bringup that publishes joint states and camera topics and accepts commands. PHYSIOS's robot
+The arm's own ROS 2 driver is not part of RawBot Studio, as in 1.x. That driver is the robot
+bringup that publishes joint states and camera topics and accepts commands. RawBot Studio's robot
 runtime talks to it over ROS 2.
 
 ## Install
@@ -75,7 +79,7 @@ runs, checkpoints and robot configs into the new data folder. The old checkout i
 ```bash
 ./start_physios.sh --with-robot   # robot runtime container + training service + gateway
 # open http://127.0.0.1:8700
-./stop_physios.sh --robot         # stop everything PHYSIOS started
+./stop_physios.sh --robot         # stop everything RawBot Studio started
 ```
 
 * `./start_physios.sh` starts the training service and the gateway only. Use it for planning
@@ -122,7 +126,7 @@ These are the pages of the running interface (see `documentation/screenshots/`):
 ## Access
 
 On a loopback-only gateway (the default) no sign-in is needed. Set `PHYSIOS_AUTH_TOKEN` in
-`configuration/physios.env` to require an operator token. It is mandatory before PHYSIOS may
+`configuration/physios.env` to require an operator token. It is mandatory before RawBot Studio may
 listen on the network (`PHYSIOS_HOST`, `PHYSIOS_ALLOW_REMOTE=1`).
 
 ## Documentation
@@ -136,7 +140,7 @@ listen on the network (`PHYSIOS_HOST`, `PHYSIOS_ALLOW_REMOTE=1`).
 | `documentation/07-VALIDATION.md` | requirements traceability, test results, deployment validation |
 | `documentation/01-ANALYSIS.md`, `06-PROJECT-REPORT.md`, `paper/` | history: analysis, v4 phases and 1.x report, IEEE paper |
 | `robot/README.md` | the robot runtime packages and robot configs |
-| `NOTICE` | third-party code included in PHYSIOS (ROBOTIS physical_ai_tools, Apache-2.0) |
+| `NOTICE` | third-party code included in RawBot Studio (ROBOTIS physical_ai_tools, Apache-2.0) |
 
 ## Safety
 
@@ -154,5 +158,5 @@ not a hardware emergency stop, so keep the power switch or e-stop within reach.
 
 ## Licence
 
-Apache License 2.0 (`LICENSE`). PHYSIOS includes code derived from ROBOTIS physical_ai_tools
+Apache License 2.0 (`LICENSE`). RawBot Studio includes code derived from ROBOTIS physical_ai_tools
 (Apache-2.0); see `NOTICE`.

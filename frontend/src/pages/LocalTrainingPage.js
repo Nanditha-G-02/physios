@@ -1195,7 +1195,7 @@ export default function LocalTrainingPage() {
         {tab === 'container' ? (
           <div className="grid gap-3">
             <Callout tone="info">
-              The original training panel: trains inside the PHYSIOS robot container with its LeRobot (
+              The original training panel: trains inside the RawBot Studio robot container with its LeRobot (
               {system?.container_lerobot || '0.2.x'}
               ). Models trained there load directly in Inference.
             </Callout>

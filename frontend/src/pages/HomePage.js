@@ -318,8 +318,8 @@ export default function HomePage() {
           {/* hero */}
           <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,460px)] items-center">
             <div className="animate-rise min-w-0" style={{ animationDelay: '60ms' }}>
-              <h1 className="text-[44px] md:text-[58px] font-light tracking-[-0.03em] leading-[0.95] fade-text">
-                PHYSIOS
+              <h1 className="text-[36px] sm:text-[44px] md:text-[58px] font-light tracking-[-0.03em] leading-[0.95] fade-text">
+                RawBot Studio
               </h1>
               <p className="mt-4 text-[15px] text-ink-3 max-w-[460px]">
                 The Operating System for Physical Intelligence.

@@ -58,7 +58,7 @@ class Notifier:
         if exe and (os.environ.get('DISPLAY') or os.environ.get('WAYLAND_DISPLAY')
                     or os.environ.get('DBUS_SESSION_BUS_ADDRESS')):
             try:
-                subprocess.Popen([exe, '-a', 'PHYSIOS',
+                subprocess.Popen([exe, '-a', 'RawBot Studio',
                                   '-u', 'critical' if level == 'error' else 'normal',
                                   title, body], stdout=subprocess.DEVNULL,
                                  stderr=subprocess.DEVNULL, start_new_session=True)

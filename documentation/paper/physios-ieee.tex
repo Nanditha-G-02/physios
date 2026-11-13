@@ -12,13 +12,13 @@
 
 \begin{document}
 
-\title{PHYSIOS: A Standalone Operating Environment for\\
+\title{RawBot Studio: A Standalone Operating Environment for\\
 Imitation-Learning Workflows on Low-Cost Robot Arms}
 
 \author{\IEEEauthorblockN{[Author names]}
 \IEEEauthorblockA{[Department, Institution]\\{}
 [City, Country]\\{}
-Technical report, PHYSIOS 1.1.0, 11 November 2026}}
+Technical report, RawBot Studio 1.1.0, 11 November 2026}}
 
 \maketitle
 
@@ -27,8 +27,8 @@ Learning manipulation skills from human demonstrations has become practical on i
 hardware, but the surrounding workflow---planning demonstrations, recording them, curating the
 data, training and diagnosing a policy, and running it on the robot under supervision---is
 usually spread across scripts, notebooks and loosely coupled web tools. This paper describes
-PHYSIOS, an independent application that unifies this workflow for the SO-101 arm on top of the
-ROBOTIS Physical AI Tools stack, ROS~2 and LeRobot. PHYSIOS adds a standard-library gateway
+RawBot Studio, an independent application that unifies this workflow for the SO-101 arm on top of the
+ROBOTIS Physical AI Tools stack, ROS~2 and LeRobot. RawBot Studio adds a standard-library gateway
 that fronts the existing robot-side node, a host training service and camera server through
 one versioned API and one origin, and serves the operators' existing web interface, organised as
 a numbered workflow.
@@ -66,7 +66,7 @@ ROS-based recording interface, command-line training, ad hoc evaluation and sepa
 scripts. Decisions such as \emph{which} demonstrations to collect next or \emph{whether} a
 training run diverged were made by inspecting logs by hand.
 
-PHYSIOS (``The Operating System for Physical Intelligence'') addresses this by providing one
+RawBot Studio (``The Operating System for Physical Intelligence'') addresses this by providing one
 independent application for the complete loop: plan $\rightarrow$ record $\rightarrow$ curate
 $\rightarrow$ train and optimise $\rightarrow$ evaluate $\rightarrow$ run under supervision. Its
 contributions are:
@@ -93,7 +93,7 @@ WebSockets~\cite{rfc6455}. Earlier versions of our work (v2--v4) extended this s
 planning engine for demonstration collection, a host training service (\texttt{pam\_trainer})
 that drives \texttt{lerobot-train} in the operator's Python environment, an optimisation
 controller and a custom-robot library with URDF validation. These capabilities were reachable
-only through the original web interface. PHYSIOS keeps the back ends and replaces the
+only through the original web interface. RawBot Studio keeps the back ends and replaces the
 application layer.
 
 \section{Requirements}
@@ -114,7 +114,7 @@ optional authentication for network access.
 \end{enumerate}
 
 \section{Architecture}\label{sec:arch}
-Fig.~\ref{fig:arch} shows the layers. The browser talks only to the PHYSIOS gateway, which
+Fig.~\ref{fig:arch} shows the layers. The browser talks only to the RawBot Studio gateway, which
 serves the built frontend and exposes \texttt{/api/v1} (REST), \texttt{/ros} (a WebSocket pipe
 to rosbridge) and the same-origin paths the interface uses for training (\texttt{/train-api}),
 camera streams (\texttt{/camera-stream}) and dataset files (\texttt{/lerobot-data}).
@@ -124,8 +124,8 @@ camera streams (\texttt{/camera-stream}) and dataset files (\texttt{/lerobot-dat
 \resizebox{\columnwidth}{!}{\begin{tikzpicture}[font=\scriptsize, node distance=3.2mm and 2mm,
   box/.style={draw, rounded corners=2pt, align=center, minimum height=6.5mm, inner sep=2pt},
   layer/.style={draw, rounded corners=3pt, fill=black!4, inner sep=3pt}]
-\node[box, minimum width=78mm] (fe) {PHYSIOS frontend (the operators' interface, React): workflow 01--06};
-\node[box, minimum width=78mm, below=of fe, fill=blue!6] (gw) {PHYSIOS gateway (Python stdlib, :8700): auth $\cdot$ API routing $\cdot$ activity $\cdot$ health $\cdot$ config};
+\node[box, minimum width=78mm] (fe) {RawBot Studio frontend (the operators' interface, React): workflow 01--06};
+\node[box, minimum width=78mm, below=of fe, fill=blue!6] (gw) {RawBot Studio gateway (Python stdlib, :8700): auth $\cdot$ API routing $\cdot$ activity $\cdot$ health $\cdot$ config};
 \node[box, below=of gw, xshift=-28mm, minimum width=24mm] (ros) {rosbridge adapter\\(ROS services)};
 \node[box, right=of ros, minimum width=17mm] (tr) {trainer\\proxy};
 \node[box, right=of tr, minimum width=15mm] (cam) {camera\\proxy};
@@ -139,7 +139,7 @@ camera streams (\texttt{/camera-stream}) and dataset files (\texttt{/lerobot-dat
 \foreach \a/\b in {fe/gw, gw/ros, gw/tr, gw/cam, gw/ds, ros/pas, tr/pt, cam/wvs, ds/lr, pas/arm, pt/gpu}
   \draw[-{Latex[length=1.4mm]}] (\a) -- (\b);
 \end{tikzpicture}}
-\caption{PHYSIOS layers. Only the two top layers are new; everything below is reused
+\caption{RawBot Studio layers. Only the two top layers are new; everything below is reused
 unchanged (R2).}
 \label{fig:arch}
 \end{figure}
@@ -166,7 +166,7 @@ the training service's environment module (imported, not copied);
 The gateway is about 1.6\,k lines of Python.
 
 \subsection{Frontend}
-Operators asked that the application keep the interface they already use, page for page. PHYSIOS
+Operators asked that the application keep the interface they already use, page for page. RawBot Studio
 therefore builds and serves its own copy of that interface (React~19, Redux, Tailwind; about
 31\,k lines), rather than a re-implementation: an intermediate, separately written TypeScript
 frontend (version 1.1) differed in many page details and was replaced in version 1.2. Only
@@ -272,7 +272,7 @@ Services that are unavailable are reported with their cause rather than as empty
 \begin{figure*}[t]
 \centering
 \includegraphics[width=0.82\textwidth]{03-record-plan.png}
-\caption{Record console in PHYSIOS 1.2 (simulated robot side): camera grid, the planned episode
+\caption{Record console in RawBot Studio 1.2 (simulated robot side): camera grid, the planned episode
 with its instruction and set-up, and the control bar.}
 \label{fig:record}
 \end{figure*}
@@ -286,7 +286,7 @@ three-joint arm. Table~\ref{tab:tests} summarises the results on the final build
 
 \begin{table}[t]
 \centering
-\caption{Automated validation of PHYSIOS 1.2.0 (11 Nov 2026)}
+\caption{Automated validation of RawBot Studio 1.2.0 (11 Nov 2026)}
 \label{tab:tests}
 \setlength{\tabcolsep}{3pt}
 \begin{tabular}{@{}lr@{}}
@@ -305,7 +305,7 @@ Container: health check, six service checks & healthy, 6/6 \\
 \end{tabular}
 \end{table}
 
-The walk-through runs against the interface served by PHYSIOS and covers:
+The walk-through runs against the interface served by RawBot Studio and covers:
 \begin{itemize}
 \item robot selection;
 \item planning with all six strategies, per-episode editing, validation, fixes and approval;
@@ -326,7 +326,7 @@ were unreachable from the sandbox.
 
 \section{Limitations and Future Work}
 The central limitation is that no result above was obtained on the physical SO-101 or with
-GPU training. Outstanding checks are recording and camera streams through PHYSIOS, real
+GPU training. Outstanding checks are recording and camera streams through RawBot Studio, real
 SmolVLA training and an optimisation session from a real checkpoint, a supervised low-speed
 host rollout, and the hardware test on the real arm. Authentication uses a shared operator
 token without per-user roles, and the gateway does not terminate TLS. Custom-robot server
@@ -335,7 +335,7 @@ planned-collection and review steps reduce the number of demonstrations needed f
 grasp, camera-condition matching between training and deployment, and per-user audit trails.
 
 \section{Conclusion}
-PHYSIOS turns a set of capable but separate robot-learning tools into one independent
+RawBot Studio turns a set of capable but separate robot-learning tools into one independent
 application with a single API, a dense and consistent operator interface, layered motion
 safety and reproducible deployment, while leaving the robot-side software untouched. The
 simulated validation is complete for all modules; physical validation on the SO-101 is the

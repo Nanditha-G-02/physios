@@ -182,7 +182,7 @@ function App() {
       return;
     }
     if (!debug && item.needs === 'link' && !linked) {
-      toast.error('Server is not reachable (rosbridge). Check that the PHYSIOS robot runtime is running (./start_physios.sh --with-robot).', {
+      toast.error('Server is not reachable (rosbridge). Check that the RawBot Studio robot runtime is running (./start_physios.sh --with-robot).', {
         id: 'nav-guard',
       });
       return;

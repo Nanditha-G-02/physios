@@ -1,18 +1,18 @@
-# PHYSIOS architecture (2.0.0)
+# RawBot Studio architecture (2.0.0)
 
 ## Principle
 
 ```
-PHYSIOS FRONTEND → PHYSIOS GATEWAY → PHYSIOS SERVICES (training service, robot runtime) → ROBOT
+FRONTEND → GATEWAY → SERVICES (training service, robot runtime) → ROBOT      (all RawBot Studio)
 ```
 
-PHYSIOS is one repository that contains every layer it runs. The frontend only talks to the
+RawBot Studio is one repository that contains every layer it runs. The frontend only talks to the
 gateway, on one origin:
 * REST under `/api/v1`;
 * the same-origin paths `/train-api`, `/camera-stream` and `/lerobot-data`;
 * one WebSocket, `/ros`, to rosbridge.
 
-The gateway owns no robot logic. It forwards requests to the PHYSIOS service that implements
+The gateway owns no robot logic. It forwards requests to the RawBot Studio service that implements
 them. It adds aggregated health, CPU utilisation, an activity feed, dataset file serving and
 export, structured errors and sign-in, and it serves the built frontend.
 
@@ -23,12 +23,12 @@ The services are:
   * storage, host rollouts, the custom-robot library and dataset health reports.
 * **Robot runtime** (`robot/`, `physios-robot` container, ROS 2 Jazzy):
   * the `physical_ai_server` node: robot types, recording into LeRobot datasets, on-robot
-    inference, in-container training, and the PHYSIOS planning engine with its
+    inference, in-container training, and the RawBot Studio planning engine with its
     `/planning/command` and `/data/command` services;
   * the bag recorder;
   * rosbridge (`:9090`) and web_video_server (`:8080`).
 
-The only things outside PHYSIOS:
+The only things outside RawBot Studio:
 * the arm's own ROS 2 driver, which publishes joint states and camera topics and accepts
   commands;
 * the operator's LeRobot Python environment that training runs in;
@@ -44,7 +44,7 @@ physios/                                   the repository (github.com/Nanditha-G
 │   ├── install.sh                         requirements, configuration, data folder, frontend build
 │   └── import-legacy-data.py              copy data from a PHYSIOS 1.x installation
 ├── configuration/physios.env.example      environment-based configuration
-├── frontend/                              the PHYSIOS interface (React 19, Redux, Tailwind; CRA → dist/)
+├── frontend/                              the RawBot Studio interface (React 19, Redux, Tailwind; CRA → dist/)
 │   └── src/                               pages/ (Home, Planning, Record, Data, Training, Inference,
 │                                          Robots), features/, components/, AuthGate.js (sign-in)
 ├── backend/                               host processes, Python ≥3.9, standard library only
@@ -64,7 +64,7 @@ physios/                                   the repository (github.com/Nanditha-G
 │   ├── tests/                             gateway tests
 │   └── trainer_tests/                     training-service tests, fixtures, standalone-layout tests
 ├── robot/                                 robot runtime (ROS 2 workspace sources)
-│   ├── src/physical_ai_server/            robot server node; planning/ = PHYSIOS planning engine;
+│   ├── src/physical_ai_server/            robot server node; planning/ = RawBot Studio planning engine;
 │   │                                      config/ = built-in robot configs; launch/; test/planning
 │   ├── src/physical_ai_interfaces/        messages and services
 │   ├── src/rosbag_recorder/               bag recording service
@@ -84,7 +84,7 @@ physios/                                   the repository (github.com/Nanditha-G
 
 ## The data folder
 
-One folder, `PHYSIOS_DATA_DIR` (default `data/`), holds everything PHYSIOS produces. Every
+One folder, `PHYSIOS_DATA_DIR` (default `data/`), holds everything RawBot Studio produces. Every
 part mounts it at a fixed place, so paths are stable between the host and the containers:
 
 | Sub-folder | Contents | Host (gateway, trainer) | Robot runtime |
@@ -108,10 +108,10 @@ Inference, "load in container"). It reads the robot image's LeRobot version from
 * **ROS stays in a container.** The robot runtime needs ROS 2 Jazzy, LeRobot, real-time
   limits and device access. All of that goes into one image built from `docker/robot`. The
   gateway and the browser speak rosbridge to it.
-* **The interface operators already use.** The frontend is PHYSIOS's own copy of the
-  Physical AI Manager v4 interface, with the PHYSIOS name and the compact theme. It matches
+* **The interface operators already use.** The frontend is RawBot Studio's own copy of the
+  Physical AI Manager v4 interface, with the RawBot Studio name and the compact theme. It matches
   the screenshots of the running system page by page, as listed in `README.md`. It is built
-  and served by PHYSIOS: the gateway provides the same-origin paths that nginx used to.
+  and served by RawBot Studio: the gateway provides the same-origin paths that nginx used to.
 
 ## Authentication, deployment
 
@@ -128,9 +128,9 @@ Inference, "load in container"). It reads the robot image's LeRobot version from
   is a host process.
 
 ```
-Browser ─ PHYSIOS frontend ─┐
+Browser ─ RawBot Studio frontend ─┐
                             ▼
-               PHYSIOS gateway (script or container, :8700)
+               RawBot Studio gateway (script or container, :8700)
    auth · API routing · app services · configuration · activity
       │                    │                     │                 │
   training service      robot runtime        data folder       infrastructure
@@ -160,7 +160,7 @@ Browser ─ PHYSIOS frontend ─┐
 
 ## Module → back end map
 
-| Module | Gateway route(s) | Implementation in PHYSIOS |
+| Module | Gateway route(s) | Implementation in RawBot Studio |
 |---|---|---|
 | 01 Home (robot selection, workflow) | `/ros` (`/get_robot_types`, `/set_robot_type`, planning services, `/task/status`, `/heartbeat`), `/train-api/health` | robot runtime, training service |
 | 02 Planning | `/ros` planning services | `robot/src/physical_ai_server/physical_ai_server/planning` |
@@ -196,9 +196,9 @@ power switch or e-stop within reach, and the checklists say so.
 
 ## Independence
 
-* **Code:** everything PHYSIOS runs is in this repository. The robot runtime packages derive
+* **Code:** everything RawBot Studio runs is in this repository. The robot runtime packages derive
   from ROBOTIS physical_ai_tools (Apache-2.0, see `NOTICE`) and are maintained here.
 * **Installation:** `git clone` + `scripts/install.sh`. No other checkout is used.
 * **Data:** one data folder (`PHYSIOS_DATA_DIR`), not tracked by git.
-* **Removal:** stop PHYSIOS (`./stop_physios.sh --robot`, `./docker/physios-docker.sh down`),
+* **Removal:** stop RawBot Studio (`./stop_physios.sh --robot`, `./docker/physios-docker.sh down`),
   remove the images, then delete the repository folder and, if you want, the data folder.

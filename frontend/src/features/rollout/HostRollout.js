@@ -301,7 +301,7 @@ export default function HostRollout() {
     return (
       <div className="p-8 max-w-3xl">
         <Callout tone="warn" title="Training service not running">
-          Host rollouts run through the PHYSIOS training service on this PC: <code>cd ~/physios && ./start_physios.sh</code>
+          Host rollouts run through the RawBot Studio training service on this PC: <code>cd ~/physios && ./start_physios.sh</code>
           . {offline}
         </Callout>
       </div>

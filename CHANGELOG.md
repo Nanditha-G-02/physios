@@ -1,4 +1,14 @@
-# PHYSIOS changelog
+# RawBot Studio changelog (formerly PHYSIOS)
+
+## 2.0.0, renamed (2026-11-13)
+
+* **New name: RawBot Studio.** The interface (browser tab, Home title, sign-in screen,
+  messages), the gateway and training-service messages, the start/stop/install scripts' output,
+  the README, the documentation and the IEEE paper now say RawBot Studio. Commands, folders,
+  Python packages, Docker images and containers, and `PHYSIOS_*` settings keep their names,
+  so nothing changes for an existing installation. The gateway's HTTP `Server` header is
+  now `RawBotStudio/2.0.0`. The Home title is slightly smaller on phone-width screens so
+  the longer name fits. Screenshots `01-home.png` and `08-sign-in.png` show the new name.
 
 ## 2.0.0, fix (2026-11-13, same day)
 

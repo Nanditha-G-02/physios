@@ -1,6 +1,6 @@
-# PHYSIOS: verification status (2026-11-13, version 2.0.0)
+# RawBot Studio: verification status (2026-11-13, version 2.0.0)
 
-## Verified here (PHYSIOS 2.0.0, from a fresh clone of the repository)
+## Verified here (RawBot Studio 2.0.0, from a fresh clone of the repository)
 
 The checks below ran in a folder that has no `physical_ai_tools` checkout anywhere, in a
 cloud sandbox without ROS, a GPU or a robot.

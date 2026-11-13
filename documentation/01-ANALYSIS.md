@@ -1,5 +1,8 @@
 # PHYSIOS: Phase 1 repository and patch analysis
 
+> **Name.** The project was renamed **RawBot Studio** on 13 Nov 2026; this historical document
+> keeps the name PHYSIOS that it had at the time.
+
 > **History (PHYSIOS 1.x).** This analysis describes PHYSIOS when it lived inside a
 > `physical_ai_tools` checkout. Since 2.0.0 PHYSIOS is standalone: `pam_trainer` is
 > `backend/physios_trainer`, the robot server is the PHYSIOS robot runtime in `robot/`, and

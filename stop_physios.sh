@@ -27,7 +27,7 @@ stop_pid() { # name pidfile
     kill -0 "$(cat "$f")" 2>/dev/null && kill -KILL "$(cat "$f")"
     echo "  ✓ $1 stopped"
   else
-    echo "  - $1 was not started by PHYSIOS (or is already stopped)"
+    echo "  - $1 was not started by RawBot Studio (or is already stopped)"
   fi
   rm -f "$f"
 }
@@ -47,9 +47,9 @@ except Exception:
     pass
 EOF
 
-stop_pid "PHYSIOS gateway" "$VAR/run/gateway.pid"
+stop_pid "RawBot Studio gateway" "$VAR/run/gateway.pid"
 if [[ $KEEP_TRAINER == 0 ]]; then stop_pid "training service" "$VAR/run/trainer.pid"; fi
 if [[ $ROS == 1 ]] && command -v docker >/dev/null; then
   "$HERE/docker/physios-docker.sh" robot-down >/dev/null 2>&1 && echo "  ✓ robot runtime stopped"
 fi
-echo "PHYSIOS stopped."
+echo "RawBot Studio stopped."

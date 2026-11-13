@@ -10,9 +10,9 @@ from physios_gateway import __version__
 from physios_gateway.errors import ApiError
 from physios_gateway.adapters.rosbridge import ROS_HINT
 
-TRAINER_HINT = ('Start the PHYSIOS training service on the host: ./start_physios.sh '
+TRAINER_HINT = ('Start the RawBot Studio training service on the host: ./start_physios.sh '
                 '(or: cd backend && python3 -m physios_trainer).')
-CAMERA_HINT = ('web_video_server is not answering. It runs in the PHYSIOS robot container: '
+CAMERA_HINT = ('web_video_server is not answering. It runs in the RawBot Studio robot container: '
                './start_physios.sh --with-robot.')
 
 
@@ -98,7 +98,7 @@ class Health:
             ros = self._rosbridge()
             services = {
                 'gateway': {'status': 'ok', 'version': __version__,
-                            'detail': 'PHYSIOS gateway %s' % __version__},
+                            'detail': 'RawBot Studio gateway %s' % __version__},
                 'trainer': self._trainer(),
                 'rosbridge': ros,
                 'ros_node': self._ros_node(ros['status'] == 'ok'),

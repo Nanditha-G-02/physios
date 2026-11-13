@@ -66,7 +66,7 @@ export default function RobotsPage() {
 
         {error && (
           <Callout tone="err" title="The robot library is not reachable">
-            {error} The library is kept by the PHYSIOS training service; start it with ./start_physios.sh.
+            {error} The library is kept by the RawBot Studio training service; start it with ./start_physios.sh.
           </Callout>
         )}
 

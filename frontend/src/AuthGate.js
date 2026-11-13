@@ -48,7 +48,7 @@ export default function AuthGate({ children }) {
         setErr((b.error && b.error.message) || 'Sign-in failed.');
       }
     } catch (x) {
-      setErr('PHYSIOS gateway not reachable.');
+      setErr('RawBot Studio gateway not reachable.');
     } finally {
       setBusy(false);
     }
@@ -58,7 +58,7 @@ export default function AuthGate({ children }) {
     <div className="h-screen w-screen bp-grid grid place-items-center">
       <form className="sheet w-[360px] p-6" onSubmit={submit} data-testid="login">
         <span className="label">Sign in</span>
-        <h1 className="fade-text text-[34px] font-light tracking-tight mt-2">PHYSIOS</h1>
+        <h1 className="fade-text text-[34px] font-light tracking-tight mt-2">RawBot Studio</h1>
         <p className="text-[12.5px] text-ink-3 mt-1 mb-4">
           The Operating System for Physical Intelligence. This station requires an operator access
           token.

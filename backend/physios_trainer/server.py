@@ -327,12 +327,12 @@ def _summary(r):
 def main(argv=None):
     physios_home = Path(__file__).resolve().parents[2]  # .../physios
     ap = argparse.ArgumentParser(prog='physios-trainer',
-                                 description='PHYSIOS training service (runs on the host)')
+                                 description='RawBot Studio training service (runs on the host)')
     ap.add_argument('--host', default='127.0.0.1')
     ap.add_argument('--port', type=int, default=int(os.environ.get('PHYSIOS_TRAINER_PORT', 8766)))
     ap.add_argument('--data-root', default=os.environ.get('PHYSIOS_DATA_DIR') or
                     str(physios_home / 'data'),
-                    help='PHYSIOS data folder, shared with the robot container '
+                    help='RawBot Studio data folder, shared with the robot container '
                          '(default: $PHYSIOS_DATA_DIR or <physios>/data)')
     ap.add_argument('--repo-root', dest='data_root', help=argparse.SUPPRESS)  # old name
     ap.add_argument('--data-dir', default=None,

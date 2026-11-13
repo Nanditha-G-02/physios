@@ -1,4 +1,4 @@
-# PHYSIOS 2.0.0: validation report
+# RawBot Studio 2.0.0: validation report
 
 Date: 13 November 2026 · Repository `github.com/Nanditha-G-02/physios`, version 2.0.0.
 
@@ -6,7 +6,7 @@ Environment: cloud sandbox (Ubuntu 24.04, Python 3.13, Node 22, Chromium via Pla
 **no robot, no GPU, no ROS**. All checks ran from a fresh clone, in a folder with no
 `physical_ai_tools` checkout anywhere.
 
-This report checks 2.0.0 against the instruction of 13 Nov. PHYSIOS must be a completely
+This report checks 2.0.0 against the instruction of 13 Nov. RawBot Studio must be a completely
 independent project with its own repository, backend, frontend, configuration, dependencies,
 Docker setup and execution workflow. It must not need the ROBOTIS `physical_ai_tools`
 repository or its `physical_ai_server` / `physical_ai_trainer` backends. Simulated tests
@@ -19,7 +19,7 @@ robot PC.
 |---|---|---|---|
 | Own repository, installable from it alone | `git clone` + `scripts/install.sh` | fresh-clone install, start-up, tests (section 2) | met |
 | No `physical_ai_tools` checkout needed | nothing refers to a parent folder; no `PHYSIOS_REPO_ROOT` | `test_repository_is_self_contained` | met |
-| Own backend instead of `physical_ai_trainer` | `backend/physios_trainer` (the v4 training service, maintained in PHYSIOS) | 91 + 1 skipped unchanged tests; started by `start_physios.sh` | met |
+| Own backend instead of `physical_ai_trainer` | `backend/physios_trainer` (the v4 training service, maintained in RawBot Studio) | 91 + 1 skipped unchanged tests; started by `start_physios.sh` | met |
 | Own robot backend instead of the ROBOTIS `physical_ai_server` container | `robot/src` (robot server incl. planning engine, interfaces, recorder) + `docker/robot` image `physios-robot` | planning tests 45; Dockerfile check; compose config. Image build and real robot: section 4 | met in code; build and hardware to confirm |
 | Own frontend | `frontend/`, built by `install.sh`, served by the gateway | CI build; 26/26, 9/9, 6/6 | met |
 | Own configuration | `configuration/physios.env` (`PHYSIOS_DATA_DIR`, robot runtime settings) | `--check-config`; install creates it | met |

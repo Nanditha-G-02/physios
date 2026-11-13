@@ -1,6 +1,6 @@
-# PHYSIOS operations: install, configure, run, update, troubleshoot, test
+# RawBot Studio operations: install, configure, run, update, troubleshoot, test
 
-PHYSIOS 2.x is one self-contained repository, https://github.com/Nanditha-G-02/physios. These
+RawBot Studio 2.x is one self-contained repository, https://github.com/Nanditha-G-02/physios. These
 steps need nothing else from GitHub. Docker images are built from this repository; the
 base images and packages come from their public registries.
 
@@ -189,7 +189,7 @@ What the import copies:
 | `docker/workspace/physical_ai_manager/` | `data/workspace/physios/` |
 | `docker/workspace/rosbag2/` | `data/workspace/rosbag2/` |
 | `lerobot/outputs/train/` | `data/outputs/train/` |
-| robot configs in `physical_ai_server/config/` that PHYSIOS does not ship | `data/robot-config/` |
+| robot configs in `physical_ai_server/config/` that RawBot Studio does not ship | `data/robot-config/` |
 
 * On the same disk, files are hard-linked, so they take no extra space.
 * Paths inside the copied run, plan and checkpoint records are updated.
@@ -201,7 +201,7 @@ What the import copies:
    ~/lerobot/physical_ai_tools/physios/stop_physios.sh
    ```
    This stops `physical_ai_server` and `physical_ai_manager`, and 1.x's gateway and trainer.
-   PHYSIOS 2.x uses the same ports (8700, 8766, 9090 and 8080).
+   RawBot Studio 2.x uses the same ports (8700, 8766, 9090 and 8080).
 4. Start 2.x: `./start_physios.sh --with-robot`. Check Home (robot types), Data (datasets)
    and Training → Runs.
 5. The old checkout is no longer used. Keep it until you have checked everything, then
@@ -209,7 +209,7 @@ What the import copies:
 
 ## 8. Troubleshooting
 
-| Symptom (PHYSIOS) | Cause | Fix |
+| Symptom (RawBot Studio) | Cause | Fix |
 |---|---|---|
 | "Robot side (ROS 2) disconnected", rosbridge down | robot runtime not running | `./start_physios.sh --with-robot`; see `./docker/physios-docker.sh logs robot` |
 | rosbridge OK but ROS node "Service … does not exist" | no Zenoh router, or the arm's driver is on another ROS domain | one router per PC (`PHYSIOS_ROBOT_START_ZENOH`); same `ROS_DOMAIN_ID` everywhere |

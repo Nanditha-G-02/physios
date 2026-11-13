@@ -1,5 +1,8 @@
 # PHYSIOS 1.2.0 and Physical AI Platform v4: Project Report
 
+> **Name.** The project was renamed **RawBot Studio** on 13 Nov 2026; this historical document
+> keeps the name PHYSIOS that it had at the time.
+
 > **History (up to PHYSIOS 1.2.0).** This report covers the v4 phases and PHYSIOS 1.x, which
 > ran inside a `physical_ai_tools` checkout. PHYSIOS 2.0.0 is a standalone repository with its
 > own training service, robot runtime and data folder: see `CHANGELOG.md`,

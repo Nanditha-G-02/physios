@@ -13,7 +13,7 @@ import time
 from physios_gateway.adapters.ws import WebSocket, WsClosed
 from physios_gateway.errors import ApiError
 
-ROS_HINT = ('Start the PHYSIOS robot runtime: ./start_physios.sh --with-robot (starts the '
+ROS_HINT = ('Start the RawBot Studio robot runtime: ./start_physios.sh --with-robot (starts the '
             'physios-robot container: Zenoh router, physical_ai_server, rosbridge, '
             'web_video_server; no motion).')
 

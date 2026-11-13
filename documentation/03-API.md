@@ -1,4 +1,4 @@
-# PHYSIOS gateway API (v1)
+# RawBot Studio gateway API (v1)
 
 Base URL: `http://127.0.0.1:8700` (`PHYSIOS_HOST`, `PHYSIOS_PORT`). JSON in, JSON out.
 
@@ -128,7 +128,7 @@ Commands that run something need the `token` returned by the preview call (`plan
 ## WebSocket `/ros`
 
 After the upgrade, the connection is a transparent pipe to rosbridge (`PHYSIOS_ROSBRIDGE_URL`)
-speaking the rosbridge v2 protocol. PHYSIOS uses it for subscriptions (`/task/status`,
+speaking the rosbridge v2 protocol. RawBot Studio uses it for subscriptions (`/task/status`,
 `/heartbeat`, joint states, `/huggingface/status`), `/rosapi/topics`, and the supervised
 hardware test's trajectory commands.
 

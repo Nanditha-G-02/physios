@@ -26,7 +26,7 @@ done
 ok()   { printf '  \e[32m✓\e[0m %s\n' "$*"; }
 warn() { printf '  \e[33m!\e[0m %s\n' "$*"; }
 fail() { printf '  \e[31m✗\e[0m %s\n' "$*"; exit 1; }
-echo "PHYSIOS $(cat "$PHYSIOS/VERSION") - installing in $PHYSIOS"
+echo "RawBot Studio $(cat "$PHYSIOS/VERSION") - installing in $PHYSIOS"
 
 echo "requirements"
 PY="${PHYSIOS_PYTHON:-$(command -v python3 || true)}"
@@ -78,7 +78,7 @@ if [[ $ROBOT == 1 ]]; then echo "robot runtime image"; "$PHYSIOS/docker/physios-
 
 cat <<MSG
 
-PHYSIOS is installed.
+RawBot Studio is installed.
   start:        ./start_physios.sh                (gateway + training service)
   with robot:   ./start_physios.sh --with-robot   (also the robot runtime container)
   in Docker:    ./docker/physios-docker.sh up [--with-robot]

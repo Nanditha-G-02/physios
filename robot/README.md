@@ -1,12 +1,12 @@
-# PHYSIOS robot runtime
+# RawBot Studio robot runtime
 
-The ROS 2 side of PHYSIOS. It runs in the `physios-robot` container
+The ROS 2 side of RawBot Studio. It runs in the `physios-robot` container
 (`docker/robot/Dockerfile`), started by `./start_physios.sh --with-robot` or
 `./docker/physios-docker.sh up --with-robot`.
 
 | Package | What it does |
 |---|---|
-| `src/physical_ai_server` | robot server node: robot types, recording to LeRobot datasets, on-robot inference, in-container training, the PHYSIOS planning engine (`planning/`) and its JSON services, launch files and built-in robot configs (`config/`) |
+| `src/physical_ai_server` | robot server node: robot types, recording to LeRobot datasets, on-robot inference, in-container training, the RawBot Studio planning engine (`planning/`) and its JSON services, launch files and built-in robot configs (`config/`) |
 | `src/physical_ai_interfaces` | messages and services used by the interface (`/task/command`, `/planning/command`, ...) |
 | `src/rosbag_recorder` | bag recording service used during recording |
 
@@ -16,7 +16,7 @@ topics; it never moves the robot.
 
 **Robot configurations.** Built-in configs are in `src/physical_ai_server/config/`. Put your
 own `<robot>_config.yaml` files (for example one exported from the Robots page) in
-`data/robot-config/` of PHYSIOS. The container installs them at every start, so they
+`data/robot-config/` of RawBot Studio. The container installs them at every start, so they
 survive image rebuilds. Restart the runtime after adding one.
 
 **LeRobot.** `lerobot.lock` records the LeRobot commit installed in the image, and the

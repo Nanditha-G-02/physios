@@ -76,7 +76,7 @@ class Config:
     def validate(self):
         problems = []
         if self.host not in LOOPBACK and not self.allow_remote:
-            problems.append('PHYSIOS_HOST=%s is not a loopback address. PHYSIOS fronts services '
+            problems.append('PHYSIOS_HOST=%s is not a loopback address. RawBot Studio fronts services '
                             'that move the robot; set PHYSIOS_ALLOW_REMOTE=1 only on a trusted '
                             'network.' % self.host)
         if self.host not in LOOPBACK and not self.auth_token:

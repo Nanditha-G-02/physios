@@ -76,7 +76,7 @@ class Gateway:
     def start(self):
         self.ros.start()
         self.system.start()
-        self.activity.add('gateway', 'info', 'PHYSIOS gateway %s started' % __version__)
+        self.activity.add('gateway', 'info', 'RawBot Studio gateway %s started' % __version__)
 
     def stop(self):
         self.ros.stop()
@@ -87,7 +87,7 @@ def make_handler(gw):
     cfg = gw.cfg
 
     class H(BaseHTTPRequestHandler):
-        server_version = 'PHYSIOS/%s' % __version__
+        server_version = 'RawBotStudio/%s' % __version__
         protocol_version = 'HTTP/1.0'
 
         def log_message(self, fmt, *args):  # route through logging
@@ -151,7 +151,7 @@ def make_handler(gw):
                     return self._auth(method, path[len('/api/v1/auth/'):])
                 if (path.startswith(PROTECTED) or path == '/ros') and \
                         not gw.auth.allowed(self.headers):
-                    raise ApiError(401, 'auth_required', 'Sign in to PHYSIOS to continue.',
+                    raise ApiError(401, 'auth_required', 'Sign in to RawBot Studio to continue.',
                                    'Enter the access token set in PHYSIOS_AUTH_TOKEN.')
                 if path == '/ros' and self.headers.get('Upgrade', '').lower() == 'websocket':
                     self._check_origin()
@@ -443,7 +443,7 @@ def make_handler(gw):
         def _static(self, path):
             root = cfg.frontend_dist
             if not (root / 'index.html').is_file():
-                html = ('<!doctype html><meta charset="utf-8"><title>PHYSIOS</title>'
+                html = ('<!doctype html><meta charset="utf-8"><title>RawBot Studio</title>'
                         '<body style="font:15px system-ui;padding:40px;background:#0b0e13;'
                         'color:#e6e9ef"><h1>PHYSIOS gateway is running</h1><p>The frontend is '
                         'not built yet. Run <code>cd physios/frontend && npm ci && npm run '
@@ -538,7 +538,7 @@ def setup_logging(var_dir, verbose=False):
 
 
 def main(argv=None):
-    ap = argparse.ArgumentParser(prog='physios-gateway', description='PHYSIOS gateway')
+    ap = argparse.ArgumentParser(prog='physios-gateway', description='RawBot Studio gateway')
     ap.add_argument('--host')
     ap.add_argument('--port', type=int)
     ap.add_argument('--config', help='env file (default physios/configuration/physios.env)')
@@ -572,7 +572,7 @@ def main(argv=None):
         threading.Thread(target=httpd.shutdown, daemon=True).start()
 
     signal.signal(signal.SIGTERM, _term)
-    log.info('PHYSIOS gateway %s listening on http://%s:%d (trainer %s, rosbridge %s)',
+    log.info('RawBot Studio gateway %s listening on http://%s:%d (trainer %s, rosbridge %s)',
              __version__, cfg.host, cfg.port, cfg.trainer_url, cfg.rosbridge_url)
     try:
         httpd.serve_forever()
@@ -581,5 +581,5 @@ def main(argv=None):
     finally:
         gw.stop()
         httpd.server_close()
-        log.info('PHYSIOS gateway stopped')
+        log.info('RawBot Studio gateway stopped')
     return 0

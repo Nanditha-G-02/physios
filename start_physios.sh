@@ -113,7 +113,7 @@ fi
 if port_open "$RB_HOST" "$RB_PORT"; then ok "rosbridge reachable"; else warn "rosbridge not reachable: planning, recording and datasets need it (use --with-robot)"; fi
 
 # ---- 5. gateway ------------------------------------------------------------------------------
-say "PHYSIOS gateway (http://$HOST:$PORT)"
+say "RawBot Studio gateway (http://$HOST:$PORT)"
 if [[ $GATEWAY == 0 ]]; then
   if http_ok "http://$HOST:$PORT/api/v1/auth/session"; then ok "not started here (--no-gateway); one is answering"
   else warn "not started (--no-gateway) and none is answering: ./docker/physios-docker.sh up"; fi
@@ -122,7 +122,7 @@ elif alive "$VAR/run/gateway.pid"; then
 elif port_open "$HOST" "$PORT"; then
   fail "port $PORT is used by another program (set PHYSIOS_PORT)"
 elif [[ $FG == 1 ]]; then
-  say "foreground mode, Ctrl+C stops PHYSIOS"
+  say "foreground mode, Ctrl+C stops RawBot Studio"
   cd "$HERE/backend" && exec "$PY" -m physios_gateway
 else
   ( cd "$HERE/backend" && { nohup "$PY" -m physios_gateway >>"$VAR/log/gateway.out" 2>&1 </dev/null & echo $! >"$VAR/run/gateway.pid"; } )
@@ -147,5 +147,5 @@ for k, s in h['services'].items():
         print('               \033[2m%s\033[0m' % s['hint'])
 EOF
 echo
-printf '  %sPHYSIOS is running:%s  http://%s:%s\n' "$c_ok" "$c_off" "$HOST" "$PORT"
+printf '  %sRawBot Studio is running:%s  http://%s:%s\n' "$c_ok" "$c_off" "$HOST" "$PORT"
 echo   "  Stop with ./stop_physios.sh. Nothing moves the robot until you start it in the app."

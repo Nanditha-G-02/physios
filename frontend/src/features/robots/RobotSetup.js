@@ -763,7 +763,7 @@ function DataCheck({ robot, refresh }) {
           <div className="label">Recording with physical_ai_server</div>
           <p className="text-[12.5px] text-ink-3">
             Recording goes through physical_ai_server, which reads one config file per robot. Export the generated file, save it in
-            <span className="font-mono">data/robot-config/</span> of PHYSIOS, restart the robot runtime, then select the robot on Home.
+            <span className="font-mono">data/robot-config/</span> of RawBot Studio, restart the robot runtime, then select the robot on Home.
             This app does not install it for you.
           </p>
           <button className="btn btn-sm" onClick={exportCfg} disabled={!allowed.export_server_config} data-action="export-server-config">
