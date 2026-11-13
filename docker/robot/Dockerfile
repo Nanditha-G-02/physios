@@ -44,6 +44,10 @@ RUN if [ "${INSTALL_TORCH}" = "1" ]; then \
       pip install --ignore-installed ${TORCH_PACKAGES} --index-url "${TORCH_INDEX_URL}"; \
     fi
 
+# version limits that keep every package compatible with ROS 2 Jazzy's NumPy 1.x
+COPY robot/constraints.txt /etc/physios/constraints.txt
+ENV PIP_CONSTRAINT=/etc/physios/constraints.txt
+
 # LeRobot at the pinned commit; torch/torchvision come from the base image (as in 1.x)
 RUN git init -q /opt/lerobot && cd /opt/lerobot \
  && git remote add origin "${LEROBOT_REPOSITORY}" \
@@ -51,8 +55,9 @@ RUN git init -q /opt/lerobot && cd /opt/lerobot \
  && sed -i '/"torch[^\"]*",/d; /"torchvision[^\"]*",/d' pyproject.toml \
  && pip install --ignore-installed -e . \
  && pip install -e ".[smolvla]" \
- && pip install pyzmq psutil matplotlib requests \
- && pip install setuptools==68.1.2 'numpy<2'
+ && pip install pyzmq psutil matplotlib requests 'pandas<3' 'pyarrow<26' 'opencv-python-headless<5' \
+ && pip install setuptools==68.1.2 'numpy<2' \
+ && python3 -c "import numpy, pandas, pyarrow, cv2, lerobot; print('numpy', numpy.__version__, 'pandas', pandas.__version__, 'pyarrow', pyarrow.__version__, 'cv2', cv2.__version__)"
 
 # the PHYSIOS robot packages
 COPY robot/src ${COLCON_WS}/src/physios
@@ -60,8 +65,9 @@ RUN source /opt/ros/${ROS_DISTRO}/setup.bash && cd ${COLCON_WS} \
  && apt-get update && (rosdep update || true) \
  && rosdep install -i --from-path src --rosdistro ${ROS_DISTRO} -y \
  && rm -rf /var/lib/apt/lists/* \
- && colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release \
- && rm -rf build log
+ && colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release \
+ && source install/setup.bash \
+ && python3 -c "import physical_ai_server.physical_ai_server, physical_ai_server.planning.service; print('robot server imports OK')"
 
 COPY docker/robot/entrypoint.sh /usr/local/bin/physios-robot
 RUN chmod +x /usr/local/bin/physios-robot \

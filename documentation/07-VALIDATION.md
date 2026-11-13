@@ -38,7 +38,7 @@ robot PC.
 |---|---|---|
 | Installation | `./scripts/install.sh` | completed (config, data folder, frontend build, config check) |
 | Gateway | `cd backend && python3 -m pytest -q tests` | **22 passed** |
-| Training service + standalone layout | `cd backend && python3 -m pytest -q trainer_tests` | **99 passed, 1 skipped** |
+| Training service + standalone layout | `cd backend && python3 -m pytest -q trainer_tests` | **102 passed, 1 skipped** |
 | Planning engine | `cd robot/src/physical_ai_server && python3 -m pytest -q test/planning` | **45 passed** |
 | Frontend production build | `cd frontend && CI=true npm run build` | **compiled** |
 | Whole workflow | `tests/e2e/run_e2e.py http://127.0.0.1:8700` against `tests/e2e/devstack.py` | **26/26** |

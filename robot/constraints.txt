@@ -1,0 +1,11 @@
+# Version limits for the PHYSIOS robot runtime image (docker/robot/Dockerfile uses them for
+# every pip install). ROS 2 Jazzy's Python packages (cv_bridge, ...) are built against
+# NumPy 1.x, so the image keeps NumPy < 2 and every package must work with it.
+# The build imports the robot server, so a package that still needs NumPy 2 stops the build.
+numpy<2
+# pandas 3 requires NumPy >= 2.0.2 (crashed physical_ai_server at import)
+pandas<3
+# pyarrow 26+ requires NumPy 2 (crashed physical_ai_server at import); 25.0.1 is the last for NumPy 1
+pyarrow<26
+# the 1.x container used 4.13
+opencv-python-headless<5

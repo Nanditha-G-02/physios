@@ -173,3 +173,45 @@ def test_planning_store_files_are_readable(tmp_path):
     store.atomic_write_json(tmp_path / 's.json', {'t': 1}, mode=0o600)
     assert (tmp_path / 'a.json').stat().st_mode & 0o777 == 0o644
     assert (tmp_path / 's.json').stat().st_mode & 0o777 == 0o600
+
+
+def test_import_recreates_symlinks(tmp_path):
+    """The Hugging Face hub cache links snapshots to blobs; the links must survive."""
+    old = tmp_path / 'physical_ai_tools'
+    hub = old / 'docker' / 'huggingface' / 'hub' / 'models--me--policy'
+    (hub / 'blobs').mkdir(parents=True)
+    (hub / 'blobs' / 'abc').write_bytes(b'weights')
+    snap = hub / 'snapshots' / 'r1'
+    snap.mkdir(parents=True)
+    (snap / 'model.safetensors').symlink_to('../../blobs/abc')
+    (snap / 'abs.bin').symlink_to(hub / 'blobs' / 'abc')
+    mod = _load_importer()
+    data = tmp_path / 'data'
+    assert mod.main([str(old), '--data', str(data)]) == 0
+    nsnap = data / 'huggingface' / 'hub' / 'models--me--policy' / 'snapshots' / 'r1'
+    assert (nsnap / 'model.safetensors').is_symlink()
+    assert (nsnap / 'model.safetensors').read_bytes() == b'weights'
+    assert str(data.resolve()) in os.readlink(nsnap / 'abs.bin')
+    assert (nsnap / 'abs.bin').read_bytes() == b'weights'
+    assert mod.main([str(old), '--data', str(data)]) == 0      # again: links kept
+
+
+def test_robot_image_keeps_numpy1_compatible_packages():
+    """pandas 3 needs NumPy 2 and crashed the robot server in the first 2.0.0 image."""
+    c = (PHYSIOS / 'robot' / 'constraints.txt').read_text()
+    for pin in ('numpy<2', 'pandas<3', 'pyarrow<26', 'opencv-python-headless<5'):
+        assert pin in c.splitlines(), pin
+    df = (PHYSIOS / 'docker' / 'robot' / 'Dockerfile').read_text()
+    assert 'PIP_CONSTRAINT=/etc/physios/constraints.txt' in df
+    assert "import physical_ai_server.physical_ai_server" in df   # build fails, not runtime
+
+
+def test_robot_server_folders_are_packages():
+    """A folder without __init__.py is left out by a normal colcon build
+    ('No module named physical_ai_server.training.trainers.lerobot')."""
+    root = PHYSIOS / 'robot' / 'src' / 'physical_ai_server' / 'physical_ai_server'
+    missing = [str(d.relative_to(root)) for d in root.rglob('*')
+               if d.is_dir() and d.name != '__pycache__' and any(d.glob('*.py'))
+               and not (d / '__init__.py').exists()]
+    assert not missing, missing
+    assert '--symlink-install' in (PHYSIOS / 'docker' / 'robot' / 'Dockerfile').read_text()

@@ -218,6 +218,7 @@ What the import copies:
 | Cameras "No image … retrying" | web_video_server down or wrong topic | it runs in the robot runtime; select the robot type so the server loads camera topics |
 | `physios-docker.sh build robot` fails pulling the base image | registry not reachable, or a different architecture | set `PHYSIOS_ROBOT_BASE_IMAGE` (with `PHYSIOS_ROBOT_INSTALL_TORCH=1` for `ros:jazzy-ros-base`) |
 | robot runtime starts but cannot open the arm or cameras | device access | the container is privileged and mounts `/dev`; check that the device exists on the host (`ls /dev/ttyACM* /dev/video*`) |
+| robot server dies at start-up with an `ImportError` about NumPy (`requires NumPy 2`) | a Python package in the robot image is newer than ROS 2 Jazzy's NumPy 1.x allows | add an upper limit for that package to `robot/constraints.txt`, then `./docker/physios-docker.sh build robot` (the build imports the robot server and stops if this happens) |
 | GPU not used for inference | NVIDIA toolkit missing | install it; `PHYSIOS_ROBOT_GPU=1` to force |
 | Frontend page "gateway is running, frontend not built" | no `frontend/dist` | `./scripts/install.sh` or `./start_physios.sh --build` |
 | "port 8700 is used by another program" | another process, the gateway container, or PHYSIOS 1.x | `./docker/physios-docker.sh down`, stop 1.x, or `PHYSIOS_PORT=8710` |
@@ -234,7 +235,7 @@ Everything runs from the repository itself, without ROS, a GPU or a robot:
 ```bash
 cd backend
 python3 -m pytest -q tests            # gateway: 22
-python3 -m pytest -q trainer_tests    # training service + standalone layout: 99 (1 skipped)
+python3 -m pytest -q trainer_tests    # training service + standalone layout: 102 (1 skipped)
 cd ../robot/src/physical_ai_server
 python3 -m pytest -q test/planning    # planning engine: 45
 cd ../../../frontend && CI=true npm run build   # production build, lint warnings fail it

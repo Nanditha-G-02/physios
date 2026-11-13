@@ -12,10 +12,27 @@
   With `--owner`, files are copied, not hard-linked, and given to your user. The old
   installation's files are not changed. `install.sh --import-from` now continues after a
   partial import.
+* **Symbolic links are imported.** The Hugging Face model cache (`huggingface/hub`) links
+  snapshots to blobs; these links were skipped. They are now recreated, and absolute links
+  into the old installation are pointed at the new data folder.
 * **Readable planning files.** The planning store writes files with mode 0644 (secrets stay
   0600), so plans and reviews that the robot runtime writes as root can be read by the host
   user and the gateway.
-* Tests: 3 more standalone tests (unreadable files, `--owner`, file modes).
+* **Robot runtime crash fixed.** The first 2.0.0 image picked up pandas 3, which needs
+  NumPy 2, while ROS 2 Jazzy needs NumPy 1.x. `physical_ai_server` then failed at import, and
+  `/get_robot_types` "does not exist". `robot/constraints.txt` now keeps `numpy<2`,
+  `pandas<3` and `opencv-python-headless<5`, and applies them to
+  every pip install. The build now imports the robot server, so a broken image fails while
+  building instead of at start-up.
+* **Robot server packages.** Three folders of the robot server had no `__init__.py`
+  (`training/trainers/lerobot`, `gr00tn1`, `openvla`), so a normal build left them out
+  ("No module named physical_ai_server.training.trainers.lerobot"). They are now packages,
+  and the image builds with `--symlink-install`, as the 1.x container did.
+* **pyarrow limited too.** pyarrow 26+ needs NumPy 2 as well; `robot/constraints.txt` now
+  also keeps `pyarrow<26`. The package list of the old `robotis/physical-ai-server:1.0.0`
+  image (`robot/pins-from-1x.txt`) was removed again: that image has since been updated
+  and itself contains pandas 3, which needs NumPy 2.
+* Tests: 6 more standalone tests (unreadable files, `--owner`, file modes, symlinks, robot image pins, package folders).
 
 ## 2.0.0 (2026-11-13)
 

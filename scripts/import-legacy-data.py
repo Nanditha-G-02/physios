@@ -12,7 +12,7 @@ in its own data folder (PHYSIOS_DATA_DIR, default <physios>/data). This script c
                                                                               PHYSIOS does not ship
 
 It never changes or deletes anything in <old>. Files that already exist in the data folder
-are kept. On the same disk, files are hard-linked (no extra space); otherwise copied. The
+are kept. Symbolic links (the Hugging Face model cache uses them) are recreated. On the same disk, files are hard-linked (no extra space); otherwise copied. The
 paths written inside the copied JSON records (runs, plans, checkpoint configs) are updated to
 the new locations, so finished runs and their checkpoints keep working. After checking
 PHYSIOS, you may delete the old checkout yourself.
@@ -41,6 +41,8 @@ MAX_REWRITE_BYTES = 8 << 20
 
 
 OWNER = None          # (uid, gid) given with --owner
+OLD_ROOT = Path('/nonexistent')
+MOVES = []            # (old folder, new folder)
 
 
 def chown(path):
@@ -82,7 +84,25 @@ def copy_tree(src, dst, dry, stats, unreadable):
             s = Path(root) / name
             d = dst / rel / name
             if s.is_symlink():
-                stats['skipped symlinks'] += 1
+                # e.g. the Hugging Face model cache (hub/.../snapshots -> blobs): recreate the
+                # link; relative links stay valid, absolute ones into <old> are re-pointed
+                if d.is_symlink() or d.exists():
+                    stats['kept (already present)'] += 1
+                    continue
+                if dry:
+                    stats['links to recreate'] += 1
+                    continue
+                target = os.readlink(s)
+                if os.path.isabs(target) and Path(target).is_relative_to(OLD_ROOT):
+                    for o, n in MOVES:
+                        if Path(target).is_relative_to(o):
+                            target = str(n / Path(target).relative_to(o))
+                            break
+                make_dirs(d.parent)
+                os.symlink(target, d)
+                if OWNER:
+                    os.chown(d, *OWNER, follow_symlinks=False)
+                stats['links recreated'] += 1
                 continue
             if d.exists():
                 stats['kept (already present)'] += 1
@@ -144,7 +164,7 @@ def main(argv=None):
                     help='with sudo: make the imported files belong to this user, e.g. '
                          '--owner $(id -u):$(id -g)')
     a = ap.parse_args(argv)
-    global OWNER
+    global OWNER, OLD_ROOT, MOVES
     OWNER = None
     if a.owner:
         try:
@@ -175,6 +195,7 @@ def main(argv=None):
         (old / 'docker' / 'workspace' / 'rosbag2', data / 'workspace' / 'rosbag2'),
         (old / 'lerobot' / 'outputs' / 'train', data / 'outputs' / 'train'),
     ]
+    OLD_ROOT, MOVES = old, moves
     for src, dst in moves:
         if src.is_dir():
             print('  %s\n    -> %s' % (src, dst))
