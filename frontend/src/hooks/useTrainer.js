@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Client for the host-side training service (physical_ai_trainer, 127.0.0.1:8766),
+// Client for the host-side PHYSIOS training service (physios_trainer, 127.0.0.1:8766),
 // reached through nginx at /train-api/ (same origin).
 
 import { useCallback } from 'react';

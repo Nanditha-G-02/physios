@@ -10,10 +10,10 @@ from physios_gateway import __version__
 from physios_gateway.errors import ApiError
 from physios_gateway.adapters.rosbridge import ROS_HINT
 
-TRAINER_HINT = ('Start the training service on the host: cd physical_ai_trainer && '
-                'python3 -m pam_trainer (./start_physios.sh does this).')
-CAMERA_HINT = ('web_video_server is not answering. It runs inside the physical_ai_server '
-               'container with the bringup launch.')
+TRAINER_HINT = ('Start the PHYSIOS training service on the host: ./start_physios.sh '
+                '(or: cd backend && python3 -m physios_trainer).')
+CAMERA_HINT = ('web_video_server is not answering. It runs in the PHYSIOS robot container: '
+               './start_physios.sh --with-robot.')
 
 
 def http_get(url, path, timeout=1.5, read_body=True):
@@ -47,7 +47,7 @@ class Health:
                 import json
                 ver = json.loads(body).get('version')
                 return {'status': 'ok', 'latency_ms': ms, 'version': ver,
-                        'detail': 'pam_trainer %s at %s' % (ver, self.cfg.trainer_url)}
+                        'detail': 'physios_trainer %s at %s' % (ver, self.cfg.trainer_url)}
             return {'status': 'down', 'detail': 'HTTP %d from %s' % (st, self.cfg.trainer_url),
                     'hint': TRAINER_HINT}
         except (OSError, ValueError) as e:

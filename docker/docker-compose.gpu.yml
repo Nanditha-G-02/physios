@@ -1,0 +1,11 @@
+# Added by ./physios-docker.sh when an NVIDIA GPU and the NVIDIA container toolkit are present
+# (or PHYSIOS_ROBOT_GPU=1): gives the robot runtime the GPU for on-robot inference.
+services:
+  physios-robot:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

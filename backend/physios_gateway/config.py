@@ -2,15 +2,15 @@
 
 Order (later wins): built-in defaults -> ``physios/configuration/physios.env`` (or the file
 named by ``PHYSIOS_CONFIG``) -> process environment -> command-line flags.
-Paths are resolved relative to the repository root; nothing is hard-coded to a user.
+Paths are resolved relative to the PHYSIOS folder; nothing is hard-coded to a user.
 """
 
 import os
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent            # physios/backend/physios_gateway
-PHYSIOS_DIR = HERE.parent.parent                  # physios/
-REPO_DEFAULT = PHYSIOS_DIR.parent                 # physical_ai_tools/
+BACKEND_DIR = HERE.parent                         # physios/backend (gateway + trainer)
+PHYSIOS_DIR = BACKEND_DIR.parent                  # physios/ (the repository)
 
 LOOPBACK = ('127.0.0.1', 'localhost', '::1')
 
@@ -49,7 +49,10 @@ class Config:
             v = merged.get(key)
             return default if v in (None, '') else v
 
-        self.repo_root = Path(os.path.expanduser(get('PHYSIOS_REPO_ROOT', str(REPO_DEFAULT))))
+        # PHYSIOS data folder: datasets (huggingface/), plans and runs (workspace/physios/),
+        # checkpoints (outputs/). Shared with the PHYSIOS robot container.
+        self.data_dir = Path(os.path.expanduser(get('PHYSIOS_DATA_DIR',
+                                                    str(PHYSIOS_DIR / 'data'))))
         self.host = get('PHYSIOS_HOST', '127.0.0.1')
         self.port = int(get('PHYSIOS_PORT', '8700'))
         self.allow_remote = get('PHYSIOS_ALLOW_REMOTE', '0') in ('1', 'true', 'yes')
@@ -57,14 +60,14 @@ class Config:
         self.rosbridge_url = get('PHYSIOS_ROSBRIDGE_URL', 'ws://127.0.0.1:9090')
         self.camera_url = get('PHYSIOS_CAMERA_URL', 'http://127.0.0.1:8080').rstrip('/')
         roots = get('PHYSIOS_DATASET_ROOTS', os.pathsep.join([
-            str(self.repo_root / 'docker' / 'huggingface' / 'lerobot'),
+            str(self.data_dir / 'huggingface' / 'lerobot'),
             '~/.cache/huggingface/lerobot']))
         self.dataset_roots = [Path(os.path.expanduser(r)).resolve()
                               for r in roots.split(os.pathsep) if r.strip()]
         self.frontend_dist = Path(os.path.expanduser(get(
             'PHYSIOS_FRONTEND_DIST', str(PHYSIOS_DIR / 'frontend' / 'dist'))))
         self.var_dir = Path(os.path.expanduser(get('PHYSIOS_VAR_DIR', str(PHYSIOS_DIR / 'var'))))
-        self.trainer_dir = self.repo_root / 'physical_ai_trainer'
+        self.trainer_dir = BACKEND_DIR                 # physios_trainer lives next to the gateway
         self.ros_timeout_s = float(get('PHYSIOS_ROS_TIMEOUT_S', '20'))
         self.max_upload_mb = int(get('PHYSIOS_MAX_UPLOAD_MB', '128'))
         self.auth_token = get('PHYSIOS_AUTH_TOKEN', '')
@@ -98,7 +101,7 @@ class Config:
             'trainer_url': self.trainer_url, 'rosbridge_url': self.rosbridge_url,
             'camera_url': self.camera_url,
             'dataset_roots': [str(r) for r in self.dataset_roots],
-            'repo_root': str(self.repo_root), 'frontend_dist': str(self.frontend_dist),
+            'data_dir': str(self.data_dir), 'frontend_dist': str(self.frontend_dist),
             'config_file': self.source_file, 'ros_timeout_s': self.ros_timeout_s,
             'auth_enabled': bool(self.auth_token),
         }

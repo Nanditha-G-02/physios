@@ -5,7 +5,7 @@
 #
 #   ./stop_physios.sh            stop gateway (+ trainer started by start_physios.sh)
 #   ./stop_physios.sh --keep-trainer
-#   ./stop_physios.sh --ros      also stop the Zenoh router and bringup inside the container
+#   ./stop_physios.sh --robot    also stop the PHYSIOS robot runtime container
 set -uo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG="${PHYSIOS_CONFIG:-$HERE/configuration/physios.env}"
@@ -15,7 +15,7 @@ VAR="${PHYSIOS_VAR_DIR:-$HERE/var}"
 TRAINER_URL="${PHYSIOS_TRAINER_URL:-http://127.0.0.1:8766}"
 KEEP_TRAINER=0; ROS=0
 for a in "$@"; do
-  case "$a" in --keep-trainer) KEEP_TRAINER=1 ;; --ros) ROS=1 ;; -h|--help) sed -n '2,9p' "$0"; exit 0 ;; esac
+  case "$a" in --keep-trainer) KEEP_TRAINER=1 ;; --robot|--ros) ROS=1 ;; -h|--help) sed -n '2,9p' "$0"; exit 0 ;; esac
 done
 PY="${PHYSIOS_PYTHON:-python3}"
 
@@ -50,7 +50,6 @@ EOF
 stop_pid "PHYSIOS gateway" "$VAR/run/gateway.pid"
 if [[ $KEEP_TRAINER == 0 ]]; then stop_pid "training service" "$VAR/run/trainer.pid"; fi
 if [[ $ROS == 1 ]] && command -v docker >/dev/null; then
-  docker exec physical_ai_server pkill -f physical_ai_server_bringup >/dev/null 2>&1 && echo "  ✓ bringup stopped"
-  docker exec physical_ai_server pkill -f rmw_zenohd >/dev/null 2>&1 && echo "  ✓ Zenoh router stopped"
+  "$HERE/docker/physios-docker.sh" robot-down >/dev/null 2>&1 && echo "  ✓ robot runtime stopped"
 fi
 echo "PHYSIOS stopped."

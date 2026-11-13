@@ -39,7 +39,7 @@ import { setDataTab } from './features/planning/planningSlice';
 import PageType from './constants/pageType';
 import TaskPhase from './constants/taskPhases';
 
-// v2.2: Training is local training on this PC (pam-trainer). The original in-container
+// v2.2: Training is local training on this PC (physios_trainer). The original in-container
 // training page stays reachable from the Training page ("In container" tab).
 const SHOW_TRAINING = false;
 
@@ -182,7 +182,7 @@ function App() {
       return;
     }
     if (!debug && item.needs === 'link' && !linked) {
-      toast.error('Server is not reachable (rosbridge). Check that physical_ai_server is running.', {
+      toast.error('Server is not reachable (rosbridge). Check that the PHYSIOS robot runtime is running (./start_physios.sh --with-robot).', {
         id: 'nav-guard',
       });
       return;

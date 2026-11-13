@@ -1,9 +1,13 @@
-node_modules
-**/node_modules
+.git
+data
 var
+**/node_modules
+**/__pycache__
+**/.pytest_cache
 tests
+backend/tests
+backend/trainer_tests
 documentation
 frontend/src
 frontend/public
-**/__pycache__
 configuration/physios.env

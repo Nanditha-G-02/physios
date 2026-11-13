@@ -16,7 +16,7 @@
 // in the production image.
 //   /camera-stream/* -> web_video_server on :8080 (same-origin for the Processed view)
 //   /lerobot-data/*  -> local LeRobot datasets (read-only, for episode videos)
-//   /train-api/*     -> host training service (physical_ai_trainer) on :8766
+//   /train-api/*     -> host training service (physios_trainer) on :8766
 // Set LEROBOT_DATA_DIR to the dataset folder (default: ~/.cache/huggingface/lerobot).
 
 const path = require('path');

@@ -8,7 +8,7 @@ Routes (full contract in documentation/03-API.md):
   GET  /api/v1/ros/status | /ros/robot-types | /ros/cameras | /ros/policies
   POST /api/v1/ros/robot-type | /ros/task | /ros/hf
   POST /api/v1/planning/<command> | /api/v1/data/<command>      (PlanningService)
-  ANY  /api/v1/trainer/<path>                                     (pam_trainer /api/<path>)
+  ANY  /api/v1/trainer/<path>                                     (physios_trainer /api/<path>)
   GET  /api/v1/camera/stream?topic= | /camera/snapshot?topic=     (web_video_server)
   GET  /api/v1/datasets/roots | /datasets/<owner>/<name>/files/<path> | .../export
   WS   /ros                                                       (rosbridge, transparent)
@@ -63,7 +63,7 @@ class Gateway:
         self.rosapi = RosApi(self.ros, self.activity)
         self.datasets = Datasets(cfg.dataset_roots)
         self.system = SystemMonitor(cfg.trainer_dir, [cfg.var_dir, *cfg.dataset_roots,
-                                                      cfg.repo_root])
+                                                      cfg.data_dir])
         self.health = Health(cfg, self.ros, self.rosapi, self.datasets, self.activity)
         self.auth = Auth(cfg.auth_token, cfg.auth_session_h)
         self.started = time.time()

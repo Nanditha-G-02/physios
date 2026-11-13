@@ -4,10 +4,10 @@
 Runs PHYSIOS against stand-ins of the robot side so the whole application can be exercised
 on a machine without ROS or a GPU:
 
-* physical_ai_manager/e2e/standin_server.py - rosbridge protocol on :9090 whose
+* tests/e2e/standin_server.py - rosbridge protocol on :9090 whose
   /planning/command and /data/command run the REAL PlanningService, a simulated recorder
   that writes LeRobot episodes (ffmpeg test videos), MJPEG on :8080, synthetic JointState;
-* the REAL pam_trainer on :8766 with a stub lerobot environment (tests/stub_train.py
+* the REAL physios_trainer on :8766 with a stub lerobot environment (backend/trainer_tests/stub_train.py
   produces loss curves and checkpoints) and fixture runs;
 * the REAL PHYSIOS gateway on :8700.
 
@@ -28,8 +28,9 @@ import time
 import urllib.error
 import urllib.request
 
-ROOT = Path(__file__).resolve().parents[3]          # physical_ai_tools
-sys.path.insert(0, str(ROOT / 'physical_ai_trainer' / 'tests'))
+HERE = Path(__file__).resolve().parent
+ROOT = HERE.parents[1]                               # the PHYSIOS repository
+sys.path.insert(0, str(ROOT / 'backend' / 'trainer_tests'))
 GW = 'http://127.0.0.1:8700/api/v1/'
 
 
@@ -108,11 +109,11 @@ def main():
     ap.add_argument('--seed', action='store_true')
     ap.add_argument('--keep', action='store_true', help='do not wipe the work dir')
     a = ap.parse_args()
-    import fixtures as fx  # physical_ai_trainer/tests
+    import fixtures as fx  # backend/trainer_tests
     work = Path(a.work).resolve()
     if not a.keep:
         shutil.rmtree(work, ignore_errors=True)
-    for d in ('plan', 'ds', 'training', 'repo', 'var'):
+    for d in ('plan', 'ds', 'training', 'data', 'var'):
         (work / d).mkdir(parents=True, exist_ok=True)
     env = fx.make_stub_env(work / 'stub_env', working_trainer=True)
     (work / 'realpy' / 'bin').mkdir(parents=True, exist_ok=True)
@@ -132,13 +133,14 @@ def main():
                                       env=e))
 
     spawn([py, 'standin_server.py', '--data-root', str(work / 'plan'), '--dataset-root',
-           str(work / 'ds')], ROOT / 'physical_ai_manager' / 'e2e', 'standin.log')
-    spawn([py, '-m', 'pam_trainer', '--repo-root', str(work / 'repo'), '--data-dir',
+           str(work / 'ds')], HERE, 'standin.log')
+    spawn([py, '-m', 'physios_trainer', '--data-root', str(work / 'data'), '--data-dir',
            str(work / 'training'), '--dataset-root', str(work / 'ds'), '--env',
            'stub=%s' % env, '--env', 'realpy=%s' % (work / 'realpy')],
-          ROOT / 'physical_ai_trainer', 'trainer.log')
-    spawn([py, '-m', 'physios_gateway'], ROOT / 'physios' / 'backend', 'gateway.log',
+          ROOT / 'backend', 'trainer.log')
+    spawn([py, '-m', 'physios_gateway'], ROOT / 'backend', 'gateway.log',
           {'PHYSIOS_VAR_DIR': str(work / 'var'), 'PHYSIOS_DATASET_ROOTS': str(work / 'ds'),
+           'PHYSIOS_DATA_DIR': str(work / 'data'),
            'PHYSIOS_CONFIG': str(work / 'none.env')})
 
     def stop(*_):

@@ -1,5 +1,5 @@
-"""Host metrics. Static facts (OS, RAM, disks, GPU via nvidia-smi) come from the existing
-``pam_trainer.environment`` module, imported, not copied. The gateway adds what no backend
+"""Host metrics. Static facts (OS, RAM, disks, GPU via nvidia-smi) come from the PHYSIOS
+training service's ``physios_trainer.environment`` module, imported, not copied. The gateway adds what no backend
 measured: CPU utilisation (from /proc/stat deltas), load average and uptime."""
 
 import os
@@ -12,7 +12,7 @@ def _load_trainer_env(trainer_dir):
     if str(trainer_dir) not in sys.path:
         sys.path.insert(0, str(trainer_dir))
     try:
-        from pam_trainer import environment  # noqa: WPS433
+        from physios_trainer import environment  # noqa: WPS433
         return environment
     except Exception:  # noqa: BLE001 - the gateway still runs without it
         return None
@@ -95,5 +95,5 @@ class SystemMonitor:
         except (OSError, ValueError):
             info['uptime_s'] = None
         info.setdefault('cpu_count', os.cpu_count())
-        info['source'] = 'pam_trainer.environment + gateway' if self.env else 'gateway only'
+        info['source'] = 'physios_trainer.environment + gateway' if self.env else 'gateway only'
         return info

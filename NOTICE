@@ -1,0 +1,22 @@
+PHYSIOS - The Operating System for Physical Intelligence
+Copyright 2026 Nanditha G
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+PHYSIOS includes software derived from ROBOTIS physical_ai_tools
+(https://github.com/ROBOTIS-GIT/physical_ai_tools, commit dcaa3ab, 30 Oct 2026),
+Copyright 2025 ROBOTIS CO., LTD., licensed under the Apache License, Version 2.0:
+
+  robot/src/physical_ai_server     robot server (ROS 2). PHYSIOS adds the planning engine
+                                   (physical_ai_server/planning, test/planning) and its
+                                   services, and changes the in-container training folder.
+  robot/src/physical_ai_interfaces ROS 2 messages and services (PHYSIOS adds PlanningCommand)
+  robot/src/rosbag_recorder        ROS 2 bag recorder service
+  frontend/                        derived from physical_ai_manager (PHYSIOS v4 interface)
+  tests/e2e/run_e2e.py, opt_ui_check.py, standin_server.py
+                                   test helpers derived from physical_ai_manager/e2e
+
+These copies are maintained in this repository; PHYSIOS does not need a physical_ai_tools
+checkout. The original copyright headers are kept in the derived files.
+
+The robot runtime image downloads LeRobot (https://github.com/huggingface/lerobot,
+Apache License 2.0) at the commit recorded in robot/lerobot.lock.

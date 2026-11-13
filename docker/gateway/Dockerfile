@@ -1,20 +1,21 @@
 # PHYSIOS gateway + frontend in one small image (Python standard library only).
 #
-# Build context: the physios/ folder. The frontend must already be built (frontend/dist ships
-# in physios.zip; otherwise run `cd frontend && npm ci && npm run build` or
-# `./docker/physios-docker.sh build`, which does it for you).
+# Build context: the repository root. The frontend must already be built
+# (`./scripts/install.sh` or `cd frontend && npm ci && npm run build`);
+# `./docker/physios-docker.sh build` does it for you.
 #
-# The robot side (physical_ai_server, rosbridge, web_video_server) and the training service
-# (pam_trainer, which needs your LeRobot conda environment and GPU) keep running where they
-# run today. This container only replaces `./start_physios.sh`'s gateway process.
+# The robot runtime runs in its own image (docker/robot/Dockerfile). The training service
+# (backend/physios_trainer) runs on the host because it uses your LeRobot Python environment
+# and GPU; ./start_physios.sh starts it.
 ARG BASE_IMAGE=python:3.12-slim
 FROM ${BASE_IMAGE}
 
-ARG PHYSIOS_VERSION=1.2.0
+ARG PHYSIOS_VERSION=2.0.0
 ARG UID=1000
 ARG GID=1000
-LABEL org.opencontainers.image.title="PHYSIOS" \
+LABEL org.opencontainers.image.title="PHYSIOS gateway" \
       org.opencontainers.image.description="The Operating System for Physical Intelligence: gateway and frontend" \
+      org.opencontainers.image.source="https://github.com/Nanditha-G-02/physios" \
       org.opencontainers.image.version="${PHYSIOS_VERSION}" \
       org.opencontainers.image.licenses="Apache-2.0"
 
@@ -23,18 +24,21 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PHYSIOS_CONFIG=/nonexistent \
     PHYSIOS_HOST=127.0.0.1 \
     PHYSIOS_PORT=8700 \
-    PHYSIOS_REPO_ROOT=/repo \
-    PHYSIOS_DATASET_ROOTS=/repo/docker/huggingface/lerobot:/data/hf-lerobot \
+    PHYSIOS_DATA_DIR=/physios/data \
+    PHYSIOS_DATASET_ROOTS=/physios/data/huggingface/lerobot:/data/hf-lerobot \
     PHYSIOS_VAR_DIR=/var/lib/physios
 
 WORKDIR /opt/physios
+COPY VERSION VERSION
 COPY backend/physios_gateway backend/physios_gateway
+# host information (OS, GPU, disks) comes from the training service's environment module
+COPY backend/physios_trainer backend/physios_trainer
 COPY frontend/dist frontend/dist
 COPY configuration/physios.env.example configuration/physios.env.example
 
-RUN mkdir -p /var/lib/physios /repo /data/hf-lerobot \
+RUN mkdir -p /var/lib/physios /physios/data /data/hf-lerobot \
  && chown -R ${UID}:${GID} /var/lib/physios \
- && python3 -c "import sys; sys.path.insert(0, 'backend'); import physios_gateway.app" \
+ && python3 -c "import sys; sys.path.insert(0, 'backend'); import physios_gateway.app, physios_trainer.environment" \
  && test -f frontend/dist/index.html
 
 USER ${UID}:${GID}

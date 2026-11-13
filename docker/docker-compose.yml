@@ -1,39 +1,74 @@
-# PHYSIOS in Docker, next to the existing physical_ai_tools containers.
+# PHYSIOS in Docker. Use ./physios-docker.sh (it reads ../configuration/physios.env first).
 #
-#   cd physios/docker && ./physios-docker.sh up        (or: docker compose up -d --build)
+#   ./physios-docker.sh up               gateway + frontend   (http://127.0.0.1:8700)
+#   ./physios-docker.sh up --with-robot  also the robot runtime (profile "robot")
 #
-# network_mode: host, like physical_ai_manager / physical_ai_server, so the gateway reaches
-# rosbridge (:9090), web_video_server (:8080) and the host training service (:8766) on
-# 127.0.0.1, and the browser opens http://127.0.0.1:8700 as before.
-# Settings come from ../configuration/physios.env if it exists (same file as the scripts).
+# Both containers use host networking, so the gateway reaches rosbridge (:9090),
+# web_video_server (:8080) and the host training service (:8766) on 127.0.0.1.
+# PHYSIOS_DATA_DIR (default ../data) is the one data folder shared by everything:
+#   huggingface/lerobot/   datasets          workspace/physios/  plans, reviews, runs
+#   outputs/train/         checkpoints       robot-config/       extra robot configs
 name: physios
 services:
-  physios:
+  physios-gateway:
     build:
       context: ..
-      dockerfile: docker/Dockerfile
+      dockerfile: docker/gateway/Dockerfile
       args:
         BASE_IMAGE: ${PHYSIOS_BASE_IMAGE:-python:3.12-slim}
         UID: ${PHYSIOS_UID:-1000}
         GID: ${PHYSIOS_GID:-1000}
-    image: physios:1.2.0
-    container_name: physios
+    image: physios-gateway:2.0.0
+    container_name: physios-gateway
     network_mode: host
     restart: unless-stopped
     env_file:
       - path: ../configuration/physios.env
         required: false
     environment:
-      PHYSIOS_REPO_ROOT: /repo
-      PHYSIOS_DATASET_ROOTS: /repo/docker/huggingface/lerobot:/data/hf-lerobot
+      PHYSIOS_DATA_DIR: /physios/data
+      PHYSIOS_DATASET_ROOTS: /physios/data/huggingface/lerobot:/data/hf-lerobot
       PHYSIOS_VAR_DIR: /var/lib/physios
     volumes:
-      # the physical_ai_tools checkout, read-only: datasets under docker/huggingface/lerobot
-      # and pam_trainer.environment for host information
-      - ../..:/repo:ro
+      - ${PHYSIOS_DATA_DIR:-../data}:/physios/data:ro
       # LeRobot's default cache on the host, read-only
       - ${HOME:-/root}/.cache/huggingface/lerobot:/data/hf-lerobot:ro
       # activity log and gateway logs
       - physios-var:/var/lib/physios
+
+  physios-robot:
+    profiles: [robot]
+    build:
+      context: ..
+      dockerfile: docker/robot/Dockerfile
+      args:
+        BASE_IMAGE: ${PHYSIOS_ROBOT_BASE_IMAGE:-robotis/ros:jazzy-ros-base-torch2.7.0-cuda12.8.0-v3}
+        INSTALL_TORCH: ${PHYSIOS_ROBOT_INSTALL_TORCH:-0}
+    image: physios-robot:2.0.0
+    container_name: physios-robot
+    network_mode: host
+    restart: unless-stopped
+    tty: true
+    # USB serial adapters of the arms and the cameras are reached through /dev
+    privileged: true
+    cap_add:
+      - SYS_NICE
+    ulimits:
+      rtprio: 99
+      rttime: -1
+      memlock: 8428281856
+    environment:
+      ROS_DOMAIN_ID: ${PHYSIOS_ROS_DOMAIN_ID:-30}
+      PHYSIOS_ROBOT_START_ZENOH: ${PHYSIOS_ROBOT_START_ZENOH:-1}
+      DISPLAY: ${DISPLAY:-}
+      QT_X11_NO_MITSHM: "1"
+    volumes:
+      - /dev:/dev
+      - ${PHYSIOS_DATA_DIR:-../data}:/physios/data
+      - ${PHYSIOS_DATA_DIR:-../data}/huggingface:/root/.cache/huggingface
+      - ${PHYSIOS_DATA_DIR:-../data}/workspace:/workspace
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - /etc/localtime:/etc/localtime:ro
+
 volumes:
   physios-var:

@@ -41,7 +41,7 @@ export function usePlanningService() {
         const msg = String(e.message || e);
         if (/non-existent service|does not exist|Service .* not available/i.test(msg)) {
           throw new Error(
-            'The server does not provide the planning services yet. Rebuild physical_ai_interfaces and physical_ai_server, then restart the server.'
+            'The server does not provide the planning services yet. Rebuild the PHYSIOS robot image (docker/physios-docker.sh build), then restart it.'
           );
         }
         throw e;

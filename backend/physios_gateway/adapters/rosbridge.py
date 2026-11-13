@@ -1,7 +1,7 @@
 """ROS 2 adapter: a persistent rosbridge client used for service calls.
 
-The gateway never runs ROS itself. physical_ai_server (in its container) stays the only ROS
-node; this client speaks the rosbridge v2 JSON protocol to it. Topic streams for the
+The gateway never runs ROS itself. The physical_ai_server node of the PHYSIOS robot runtime
+(robot/, in the physios-robot container) is the ROS side; this client speaks the rosbridge v2 JSON protocol to it. Topic streams for the
 browser go through the transparent ``/ros`` WebSocket proxy in app.py instead.
 """
 
@@ -13,10 +13,9 @@ import time
 from physios_gateway.adapters.ws import WebSocket, WsClosed
 from physios_gateway.errors import ApiError
 
-ROS_HINT = ('Start the ROS side: in the physical_ai_server container run the Zenoh router '
-            '(ros2 run rmw_zenoh_cpp rmw_zenohd) and the bringup '
-            '(ros2 launch physical_ai_server physical_ai_server_bringup.launch.py), or use '
-            './start_physios.sh --with-ros.')
+ROS_HINT = ('Start the PHYSIOS robot runtime: ./start_physios.sh --with-robot (starts the '
+            'physios-robot container: Zenoh router, physical_ai_server, rosbridge, '
+            'web_video_server; no motion).')
 
 
 class RosBridge:

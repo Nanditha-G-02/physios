@@ -18,12 +18,13 @@
  * Default paths configuration for file browser modals
  */
 
-// Environment-based path configuration
-const BASE_WORKSPACE_PATH =
-  process.env.REACT_APP_BASE_WORKSPACE_PATH || '/root/ros2_ws/src/physical_ai_tools';
+// Environment-based path configuration.
+// PHYSIOS: paths as seen inside the PHYSIOS robot container, where the PHYSIOS data folder
+// (PHYSIOS_DATA_DIR on the host) is mounted at /physios/data; checkpoints live in outputs/.
+const BASE_WORKSPACE_PATH = process.env.REACT_APP_BASE_WORKSPACE_PATH || '/physios/data';
 
 const LEROBOT_OUTPUTS_PATH =
-  process.env.REACT_APP_LEROBOT_OUTPUTS_PATH || `${BASE_WORKSPACE_PATH}/lerobot/outputs`;
+  process.env.REACT_APP_LEROBOT_OUTPUTS_PATH || `${BASE_WORKSPACE_PATH}/outputs`;
 
 const DOT_CACHE_PATH = '/root/.cache';
 

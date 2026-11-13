@@ -1,27 +1,26 @@
 #!/usr/bin/env bash
 # PHYSIOS start-up. Starts the PHYSIOS gateway (which serves the PHYSIOS frontend) and, when it
-# is not running yet, the host training service. Checks every dependency and prints the URL
+# is not running yet, the PHYSIOS training service. Checks every dependency and prints the URL
 # and service health. It NEVER starts robot motion, recording or a rollout.
 #
-#   ./start_physios.sh              start (build the frontend first if it was never built)
-#   ./start_physios.sh --build      rebuild the frontend, then start
-#   ./start_physios.sh --with-ros   also start the Zenoh router and the physical_ai_server
-#                                   bringup inside the physical_ai_server container, if they
-#                                   are not running
-#   ./start_physios.sh --no-trainer do not start the training service
-#   ./start_physios.sh --foreground run the gateway in this terminal (Ctrl+C stops it)
+#   ./start_physios.sh               start (build the frontend first if it was never built)
+#   ./start_physios.sh --build       rebuild the frontend, then start
+#   ./start_physios.sh --with-robot  also start the PHYSIOS robot runtime container
+#                                    (Zenoh router, robot server, rosbridge, web_video_server;
+#                                    built from docker/robot on first use)
+#   ./start_physios.sh --no-trainer  do not start the training service
+#   ./start_physios.sh --foreground  run the gateway in this terminal (Ctrl+C stops it)
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO="$(cd "$HERE/.." && pwd)"
 BUILD=0; WITH_ROS=0; TRAINER=1; FG=0
 for a in "$@"; do
   case "$a" in
     --build) BUILD=1 ;;
-    --with-ros) WITH_ROS=1 ;;
+    --with-robot|--with-ros) WITH_ROS=1 ;;
     --no-trainer) TRAINER=0 ;;
     --foreground) FG=1 ;;
-    -h|--help) sed -n '2,13p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,12p' "$0"; exit 0 ;;
     *) echo "unknown option: $a (see --help)"; exit 2 ;;
   esac
 done
@@ -41,7 +40,9 @@ if [[ -f "$CONFIG" ]]; then
 else
   say "configuration: defaults (copy configuration/physios.env.example to physios.env to change them)"
 fi
-export PHYSIOS_REPO_ROOT="${PHYSIOS_REPO_ROOT:-$REPO}"
+export PHYSIOS_DATA_DIR="${PHYSIOS_DATA_DIR:-$HERE/data}"
+mkdir -p "$PHYSIOS_DATA_DIR"/{huggingface/lerobot,workspace/physios,outputs/train,robot-config}
+say "data folder: $PHYSIOS_DATA_DIR"
 HOST="${PHYSIOS_HOST:-127.0.0.1}"; PORT="${PHYSIOS_PORT:-8700}"
 TRAINER_URL="${PHYSIOS_TRAINER_URL:-http://127.0.0.1:8766}"
 ROSBRIDGE_URL="${PHYSIOS_ROSBRIDGE_URL:-ws://127.0.0.1:9090}"
@@ -84,7 +85,7 @@ say "training service ($TRAINER_URL)"
 if http_ok "$TRAINER_URL/api/health"; then
   ok "already running"
 elif [[ $TRAINER == 1 ]]; then
-  ( cd "$REPO/physical_ai_trainer" && { nohup "$PY" -m pam_trainer >>"$VAR/log/trainer.log" 2>&1 </dev/null & echo $! >"$VAR/run/trainer.pid"; } )
+  ( cd "$HERE/backend" && { nohup "$PY" -m physios_trainer >>"$VAR/log/trainer.log" 2>&1 </dev/null & echo $! >"$VAR/run/trainer.pid"; } )
   for _ in $(seq 1 40); do http_ok "$TRAINER_URL/api/health" && break; sleep 0.25; done
   http_ok "$TRAINER_URL/api/health" && ok "started (pid $(cat "$VAR/run/trainer.pid"), log $VAR/log/trainer.log)" \
     || warn "did not answer; training, optimisation and robot management will show as disconnected (see $VAR/log/trainer.log)"
@@ -92,25 +93,22 @@ else
   warn "not running (--no-trainer)"
 fi
 
-# ---- 4. ROS 2 side ----------------------------------------------------------------------------
+# ---- 4. robot runtime (ROS 2) ---------------------------------------------------------------
 RB_HOST="$(echo "$ROSBRIDGE_URL" | sed -E 's#ws://([^:/]+).*#\1#')"; RB_PORT="$(echo "$ROSBRIDGE_URL" | sed -E 's#.*:([0-9]+).*#\1#')"
-say "ROS 2 side (rosbridge $ROSBRIDGE_URL)"
+say "robot runtime (rosbridge $ROSBRIDGE_URL)"
 if [[ $WITH_ROS == 1 ]]; then
-  if command -v docker >/dev/null && docker ps --format '{{.Names}}' | grep -qx physical_ai_server; then
-    if ! docker exec physical_ai_server pgrep -f rmw_zenohd >/dev/null 2>&1; then
-      docker exec -d physical_ai_server bash -ic 'ros2 run rmw_zenoh_cpp rmw_zenohd' && ok "Zenoh router started in physical_ai_server"
-      sleep 2
-    else ok "Zenoh router already running"; fi
-    if ! port_open "$RB_HOST" "$RB_PORT"; then
-      docker exec -d physical_ai_server bash -ic 'ros2 launch physical_ai_server physical_ai_server_bringup.launch.py' \
-        && ok "physical_ai_server bringup started (no motion: it only serves services and topics)"
-      for _ in $(seq 1 60); do port_open "$RB_HOST" "$RB_PORT" && break; sleep 0.5; done
-    fi
+  if ! command -v docker >/dev/null; then
+    warn "docker is not installed: the robot runtime runs in the physios-robot container (see README)"
+  elif port_open "$RB_HOST" "$RB_PORT"; then
+    ok "already running"
   else
-    warn "container physical_ai_server is not running; start it with docker compose in docker/"
+    "$HERE/docker/physios-docker.sh" robot-up >"$VAR/log/robot-up.log" 2>&1 \
+      && ok "physios-robot container started (no motion: it only serves services and topics)" \
+      || warn "could not start the robot runtime, see $VAR/log/robot-up.log"
+    for _ in $(seq 1 120); do port_open "$RB_HOST" "$RB_PORT" && break; sleep 0.5; done
   fi
 fi
-if port_open "$RB_HOST" "$RB_PORT"; then ok "rosbridge reachable"; else warn "rosbridge not reachable: planning, recording and datasets need it (use --with-ros, or start the bringup)"; fi
+if port_open "$RB_HOST" "$RB_PORT"; then ok "rosbridge reachable"; else warn "rosbridge not reachable: planning, recording and datasets need it (use --with-robot)"; fi
 
 # ---- 5. gateway ------------------------------------------------------------------------------
 say "PHYSIOS gateway (http://$HOST:$PORT)"

@@ -14,7 +14,7 @@
 
 // Training session: trains a policy on this PC with the LeRobot installed in a
 // local (conda) environment. Everything shown here comes from the host training
-// service (physical_ai_trainer); this page never runs anything on its own and a
+// service (physios_trainer); this page never runs anything on its own and a
 // run starts only after the operator has reviewed the exact command.
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -96,7 +96,7 @@ function Offline({ message, onRetry }) {
         and GPU. It listens on 127.0.0.1 only and runs nothing until you confirm a command here. Start it in a terminal and keep
         it open:
       </p>
-      <CodeLine>cd ~/lerobot/physical_ai_tools/physical_ai_trainer && python3 -m pam_trainer</CodeLine>
+      <CodeLine>cd ~/physios && ./start_physios.sh</CodeLine>
       <p className="text-[12px] text-ink-3">
         It needs only Python 3.9+ (no packages). Training processes keep running if you close it; restart it and this page picks
         them up again.
@@ -1195,7 +1195,7 @@ export default function LocalTrainingPage() {
         {tab === 'container' ? (
           <div className="grid gap-3">
             <Callout tone="info">
-              The original training panel: trains inside the physical_ai_server container with its LeRobot (
+              The original training panel: trains inside the PHYSIOS robot container with its LeRobot (
               {system?.container_lerobot || '0.2.x'}
               ). Models trained there load directly in Inference.
             </Callout>

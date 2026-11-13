@@ -1,0 +1,5 @@
+# LeRobot used by the PHYSIOS robot runtime (docker/robot/Dockerfile reads these values).
+# Same commit as the robot container of PHYSIOS 1.x, taken from the upstream repository.
+repository = "https://github.com/huggingface/lerobot.git"
+commit = "989f3d05ba47f872d75c587e76838e9cc574857a"
+version = "0.2.0"

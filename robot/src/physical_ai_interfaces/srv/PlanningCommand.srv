@@ -1,0 +1,9 @@
+# Generic JSON command used by the Planning, Record (plan mode) and Data sessions.
+# command: name of the operation, e.g. "plan.generate", "data.list_datasets"
+# payload_json / result_json: UTF-8 JSON objects
+string command
+string payload_json
+---
+bool success
+string message
+string result_json
