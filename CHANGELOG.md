@@ -2,6 +2,10 @@
 
 ## 2.0.0, renamed (2026-11-13)
 
+* **Logo.** The *raw* wordmark is the logo: at the top of the rail, as the browser-tab icon
+  and as the app icons (`favicon.ico`, `logo192.png`, `logo512.png`). It is a vector
+  (`frontend/src/assets/raw-logo.svg`, drawn in the interface's ink colour); the source
+  files are in `documentation/branding/`.
 * **New name: RawBot Studio.** The interface (browser tab, Home title, sign-in screen,
   messages), the gateway and training-service messages, the start/stop/install scripts' output,
   the README, the documentation and the IEEE paper now say RawBot Studio. Commands, folders,

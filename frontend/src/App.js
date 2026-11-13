@@ -38,6 +38,7 @@ import { moveToPage } from './features/ui/uiSlice';
 import { setDataTab } from './features/planning/planningSlice';
 import PageType from './constants/pageType';
 import TaskPhase from './constants/taskPhases';
+import { ReactComponent as RawLogo } from './assets/raw-logo.svg';
 
 // v2.2: Training is local training on this PC (physios_trainer). The original in-container
 // training page stays reachable from the Training page ("In container" tab).
@@ -221,12 +222,7 @@ function App() {
     <div className="flex h-screen w-screen overflow-hidden bg-paper text-ink bp-grid">
       <aside className="w-[78px] shrink-0 bg-white/85 backdrop-blur border-r border-rule flex flex-col">
         <div className="h-12 flex items-center justify-center">
-          <div className="flex items-center gap-1.5">
-            <svg viewBox="0 0 28 16" className="h-4 w-7" aria-hidden>
-              <path d="M2 13 7 3l5 10 5-10 5 10" fill="none" stroke="#0B0C0E" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
-              <circle cx="25" cy="4" r="2" fill="#2457E6" />
-            </svg>
-          </div>
+          <RawLogo className="h-[14px] w-auto text-ink" role="img" aria-label="RawBot Studio" />
         </div>
         <nav className="flex-1 flex flex-col gap-0.5 px-1.5 overflow-y-auto scroll-thin" aria-label="Sessions">
           {nav.map((item, i) => {
