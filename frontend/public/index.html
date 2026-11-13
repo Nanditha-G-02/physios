@@ -2,14 +2,16 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+    <!-- ?v=3: browsers cache tab icons for a long time; a new value makes them fetch the new logo -->
+    <link rel="icon" href="%PUBLIC_URL%/favicon.ico?v=3" sizes="any" />
+    <link rel="icon" href="%PUBLIC_URL%/favicon.svg?v=3" type="image/svg+xml" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#000000" />
+    <meta name="theme-color" content="#0B0C0E" />
     <meta
       name="description"
-      content="RawBot Studio, the Operating System for Physical Intelligence, is a web application that manages the entire process of AI data training, from collection to learning, utilizing robots like AI Worker or OpenManipulator."
+      content="RawBot Studio, the Operating System for Physical Intelligence: teach a robot by demonstration, curate the data, train vision-language-action policies and run them on the arm under supervision."
     />
-    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/apple-touch-icon.png?v=3" />
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
     <title>RawBot Studio</title>
   </head>

@@ -2,6 +2,28 @@
 
 ## 2.0.0, renamed (2026-11-13)
 
+* **Home page, refined.**
+  * The robot animation is now a 3D scene in three-quarter perspective, drawn as SVG with
+    no 3D library (`components/HeroArm.js`):
+    * shaded cylinders and boxes through a perspective camera, one light, soft floor
+      shadows and a fading floor grid;
+    * an industrial-style arm: graphite base, white column, turntable, joint housings with
+      blue rings and bolt circles, white links, wrist roll, parallel gripper;
+    * motion: base rotation plus two-link inverse kinematics; quintic easing; it lifts
+      before swinging and swings before lowering;
+    * the joint/phase readout, the camera and all labels around it are gone.
+  * The six workflow cards under the hero were removed, together with their data loading.
+    The pages are still reached through the sidebar, unchanged.
+  * Layout: two columns, the heading ("Studio" in a blue-violet gradient), tagline and arm
+    on the left, the robot panel on the right, on a light canvas with soft blue and violet
+    ambient light; the photo background was removed.
+  * Robot panel: rounded card with soft shadows; robot tiles with a blue selected state and
+    check mark; a single status strip with dividers; one column of tiles on phones. The
+    selection, confirmation, custom robots and status logic are unchanged.
+* **Tab icon and app icons.** `favicon.ico` (16-64 px) and `favicon.svg` (white *raw*
+  wordmark on a black rounded tile), `apple-touch-icon.png` and the manifest icons are
+  linked with `?v=3`, so browsers drop the cached ROBOTIS "R" icon. The sign-in screen
+  shows the logo.
 * **Home page redesign.**
   * The "01 · Home · v2.0.0" line and the duplicate status chips above the title are gone;
     the page starts with the larger *RawBot Studio* heading, followed by a refined tagline.

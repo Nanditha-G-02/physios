@@ -443,9 +443,9 @@ def make_handler(gw):
         def _static(self, path):
             root = cfg.frontend_dist
             if not (root / 'index.html').is_file():
-                html = ('<!doctype html><meta charset="utf-8"><title>RawBot Studio</title>'
+                html = ('<!doctype html><meta charset="utf-8"><title>RawBot Studio</title><link rel="icon" href="/favicon.ico?v=3">'
                         '<body style="font:15px system-ui;padding:40px;background:#0b0e13;'
-                        'color:#e6e9ef"><h1>PHYSIOS gateway is running</h1><p>The frontend is '
+                        'color:#e6e9ef"><h1>RawBot Studio gateway is running</h1><p>The frontend is '
                         'not built yet. Run <code>cd physios/frontend && npm ci && npm run '
                         'build</code>, or <code>./start_physios.sh --build</code>.</p>'
                         '<p>API: <a style="color:#7cc4ff" href="/api/v1/health">/api/v1/health'

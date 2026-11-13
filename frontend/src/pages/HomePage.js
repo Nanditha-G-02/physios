@@ -13,16 +13,15 @@
 // limitations under the License.
 //
 // Author: Kiwoong Park
-// 2026: landing page - robot selection, live status and the workflow at a glance.
+// 2026: landing page - the RawBot Studio hero (animated arm) and robot selection with live
+// connection status. The workflow pages are reached through the sidebar.
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import clsx from 'clsx';
 import toast from 'react-hot-toast';
-import background from '../assets/home-background.jpg';
 import HeroArm from '../components/HeroArm';
 import { useRosServiceCaller } from '../hooks/useRosServiceCaller';
-import { usePlanningService } from '../hooks/usePlanningService';
 import { useRosLink } from '../hooks/useConnectionMonitor';
 import TaskPhase from '../constants/taskPhases';
 import PageType from '../constants/pageType';
@@ -65,15 +64,6 @@ function FamilyGlyph({ family, className }) {
   );
 }
 
-const STEPS = [
-  { page: PageType.HOME, code: '01', name: 'Home' },
-  { page: PageType.PLANNING, code: '02', name: 'Planning' },
-  { page: PageType.RECORD, code: '03', name: 'Record' },
-  { page: PageType.DATA, code: '04', name: 'Data' },
-  { page: PageType.LOCAL_TRAINING, code: '05', name: 'Training' },
-  { page: PageType.INFERENCE, code: '06', name: 'Inference' },
-];
-
 export default function HomePage() {
   const dispatch = useDispatch();
   const robotTypeList = useSelector((state) => state.ui.robotTypeList);
@@ -83,13 +73,11 @@ export default function HomePage() {
   const lastHeartbeat = useSelector((state) => state.tasks.lastHeartbeatTime);
   const linked = useRosLink(1000);
   const { getRobotTypeList, setRobotType } = useRosServiceCaller();
-  const { call } = usePlanningService();
 
   const [selected, setSelected] = useState('');
   const [fetching, setFetching] = useState(false);
   const [saving, setSaving] = useState(false);
   const [fetchError, setFetchError] = useState('');
-  const [glance, setGlance] = useState(null);
   const [now, setNow] = useState(Date.now());
   const [customRobots, setCustomRobots] = useState([]);
 
@@ -144,34 +132,6 @@ export default function HomePage() {
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
   }, []);
-
-  // workflow at a glance (real data; hidden when the planning service is absent)
-  const loadGlance = useCallback(async () => {
-    try {
-      const [plans, data, rec] = await Promise.all([
-        call('plan.list', {}),
-        call('data.list_datasets', {}),
-        call('record.state', {}),
-      ]);
-      const approved = plans.plans.filter((p) => p.approved_version).length;
-      const pending = data.datasets.reduce((a, d) => a + (d.review_counts?.pending || 0), 0);
-      const episodes = data.datasets.reduce((a, d) => a + (d.total_episodes || 0), 0);
-      setGlance({
-        plans: plans.plans.length,
-        approved,
-        activePlan: rec.plan ? { name: rec.plan.task.name, counts: rec.counts } : null,
-        datasets: data.datasets.length,
-        episodes,
-        pending,
-      });
-    } catch (e) {
-      setGlance(null);
-    }
-  }, [call]);
-
-  useEffect(() => {
-    if (linked) loadGlance();
-  }, [linked, robotType, loadGlance]);
 
   const confirm = async () => {
     if (!selected) return;
@@ -251,93 +211,73 @@ export default function HomePage() {
   ];
   const dot = { ok: 'bg-signal-ok', warn: 'bg-signal-warn', err: 'bg-signal-err', sky: 'bg-sky-ink', idle: 'bg-ink-4' };
 
-  const stepInfo = (page) => {
-    const g = glance;
-    switch (page) {
-      case PageType.HOME:
-        return { state: robotType ? 'done' : 'current', text: robotType ? `robot ${robotType}` : 'select a robot' };
-      case PageType.PLANNING:
-        return {
-          state: !robotType ? 'locked' : g?.approved ? 'done' : 'current',
-          text: g ? `${g.plans} plan${g.plans === 1 ? '' : 's'} · ${g.approved} approved` : 'define a collection plan',
-        };
-      case PageType.RECORD: {
-        const c = g?.activePlan?.counts;
-        return {
-          state: !robotType ? 'locked' : c && c.total && c.done >= c.total ? 'done' : 'open',
-          text: c ? `${g.activePlan.name}: ${c.done}/${c.total} episodes` : 'record demonstrations',
-          pct: c && c.total ? (c.done / c.total) * 100 : null,
-        };
-      }
-      case PageType.DATA:
-        return {
-          state: !linked ? 'locked' : 'open',
-          text: g ? `${g.datasets} dataset${g.datasets === 1 ? '' : 's'} · ${g.pending} pending review` : 'review & publish',
-          badge: g?.pending || 0,
-        };
-      case PageType.LOCAL_TRAINING:
-        return { state: 'open', text: 'train a policy on this PC' };
-      default:
-        return { state: !robotType ? 'locked' : 'open', text: 'run a trained policy' };
-    }
-  };
-
   return (
     <div className="relative h-full w-full overflow-hidden">
-      <img
-        src={background}
-        alt=""
+      {/* light canvas with soft blue and violet ambient light */}
+      <div
+        className="absolute inset-0 pointer-events-none"
         aria-hidden
-        className="absolute inset-0 h-full w-full object-cover select-none pointer-events-none opacity-[0.18] grayscale"
+        style={{
+          background:
+            'radial-gradient(48% 55% at 82% 14%, rgba(36,87,230,0.12), rgba(36,87,230,0) 70%),' +
+            'radial-gradient(42% 50% at 10% 96%, rgba(139,92,246,0.10), rgba(139,92,246,0) 70%),' +
+            'radial-gradient(35% 40% at 40% 60%, rgba(91,91,240,0.05), rgba(91,91,240,0) 70%),' +
+            'linear-gradient(180deg, #F8F9FB 0%, #F3F4F7 100%)',
+        }}
       />
-      <div className="absolute inset-0 bg-gradient-to-br from-paper via-paper/95 to-paper/70" />
-      <div className="orb absolute -top-24 right-[18%] h-[420px] w-[420px] pointer-events-none animate-drift" aria-hidden />
-      <div className="orb absolute bottom-[-160px] left-[8%] h-[360px] w-[360px] pointer-events-none opacity-50" aria-hidden />
 
       <div className="relative h-full overflow-y-auto scroll-thin">
-        <div className="mx-auto w-full max-w-[1320px] min-h-full px-6 md:px-10 py-6 flex flex-col justify-center gap-6">
-          {/* hero */}
-          <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,460px)] items-center">
-            <div className="animate-rise min-w-0" style={{ animationDelay: '60ms' }}>
-              <h1 className="text-[40px] sm:text-[52px] md:text-[66px] font-light tracking-[-0.035em] leading-[0.95] fade-text">
-                RawBot Studio
-              </h1>
-              <p className="mt-4 flex items-center gap-3 text-[15px] md:text-[17px] font-light tracking-[-0.01em] text-ink-2 max-w-[520px]">
-                <span className="h-px w-8 shrink-0 bg-gradient-to-r from-sky-ink to-transparent" aria-hidden />
-                The Operating System for Physical Intelligence.
-              </p>
-              <div className="relative mt-7 w-full max-w-[620px]">
-                <div className="absolute -inset-3 tick-corners pointer-events-none" />
-                <HeroArm className="w-full h-auto" />
-              </div>
+        <div className="mx-auto grid w-full max-w-[1380px] min-h-full items-center gap-x-14 gap-y-8 px-6 py-10 md:px-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,430px)]">
+          {/* hero: heading, tagline, animated arm */}
+          <div className="min-w-0 animate-rise" style={{ animationDelay: '40ms' }}>
+            <h1 className="text-[42px] sm:text-[56px] xl:text-[72px] font-light leading-[0.94] tracking-[-0.04em] text-ink">
+              RawBot{' '}
+              <span
+                className="font-normal bg-clip-text text-transparent"
+                style={{ backgroundImage: 'linear-gradient(100deg, #2457E6 0%, #5B5BF0 45%, #8B5CF6 100%)' }}
+              >
+                Studio
+              </span>
+            </h1>
+            <p className="mt-5 flex items-center gap-3 text-[15px] md:text-[18px] font-light tracking-[-0.01em] text-ink-2">
+              <span className="h-px w-10 shrink-0 bg-gradient-to-r from-sky-ink to-transparent" aria-hidden />
+              The Operating System for Physical Intelligence.
+            </p>
+            <div className="relative mt-4 -ml-2 w-full max-w-[860px]">
+              <HeroArm className="h-auto w-full" />
             </div>
+          </div>
 
-            <section
-              className="sheet bg-white/90 backdrop-blur-md animate-rise shadow-lift"
-              style={{ animationDelay: '140ms' }}
-              aria-label="Robot selection"
-            >
-              <header className="sheet-head">
-                <div>
-                  <div className="label">Step 1 of 6</div>
-                  <h2 className="sheet-title text-[17px]">Select your robot</h2>
-                </div>
-                <button
-                  className="btn btn-sm"
-                  onClick={fetchRobotTypes}
-                  disabled={fetching}
-                  title="Reload robot types from the server"
-                  aria-label="Reload robot types"
-                >
-                  {fetching ? <Spinner /> : '↻'} Refresh
-                </button>
-              </header>
-              <div className="p-5 space-y-4">
+          <section
+            className="relative rounded-[24px] border border-white/80 bg-white/85 backdrop-blur-xl animate-rise"
+            style={{
+              animationDelay: '120ms',
+              boxShadow:
+                '0 0 0 1px rgba(15,23,42,0.05), 0 1px 0 rgba(255,255,255,0.9) inset, 0 10px 24px -14px rgba(15,23,42,0.18), 0 32px 64px -32px rgba(36,87,230,0.28)',
+            }}
+            aria-label="Robot selection"
+          >
+            <header className="flex items-start justify-between gap-3 px-6 pt-5 pb-4 border-b border-rule">
+              <div>
+                <div className="label">Step 1 of 6</div>
+                <h2 className="mt-1 text-[19px] font-semibold tracking-[-0.01em] text-ink">Select your robot</h2>
+              </div>
+              <button
+                className="btn btn-sm"
+                onClick={fetchRobotTypes}
+                disabled={fetching}
+                title="Reload robot types from the server"
+                aria-label="Reload robot types"
+              >
+                {fetching ? <Spinner /> : '↻'} Refresh
+              </button>
+            </header>
+            <div className="space-y-4 p-6">
                 {fetchError && (
                   <div className="rounded-xl bg-signal-errbg px-3 py-2 text-[12.5px]">{fetchError}</div>
                 )}
                 <div
-                  className="grid grid-cols-2 gap-2 max-h-[248px] overflow-y-auto scroll-thin pr-0.5"
+                  className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[248px] overflow-y-auto scroll-thin pr-0.5"
                   role="radiogroup"
                   aria-label="Robot type"
                 >
@@ -355,23 +295,30 @@ export default function HomePage() {
                         disabled={saving || busy}
                         onClick={() => setSelected(t)}
                         className={clsx(
-                          'group relative overflow-hidden text-left rounded-2xl px-3 py-2.5 flex items-center gap-2.5 transition-all duration-200 animate-rise',
+                          'group relative overflow-hidden text-left rounded-2xl border px-3 py-3 flex items-center gap-2.5 transition-all duration-200 animate-rise',
                           'hover:-translate-y-[1px] disabled:opacity-60',
-                          on ? 'bg-ink text-white shadow-lift' : 'bg-paper hover:bg-paper-2'
+                          on
+                            ? 'border-sky-ink bg-sky-50 ring-4 ring-sky-ink/10 shadow-card'
+                            : 'border-rule bg-white hover:border-sky-ink/40 hover:shadow-card'
                         )}
                         style={{ animationDelay: `${180 + i * 40}ms` }}
                       >
-                        <FamilyGlyph family={fam.key} className={clsx('h-9 w-9 shrink-0', on ? 'text-[#9db8ff]' : 'text-ink-2')} />
+                        <FamilyGlyph family={fam.key} className={clsx('h-9 w-9 shrink-0 transition-colors', on ? 'text-sky-ink' : 'text-ink-3 group-hover:text-ink-2')} />
                         <span className="min-w-0">
                           <span className="block text-[13px] font-semibold truncate">{t}</span>
-                          <span className={clsx('block text-[11px] truncate', on ? 'text-white/60' : 'text-ink-3')}>{fam.name}</span>
+                          <span className="block text-[11px] truncate text-ink-3">{fam.name}</span>
                         </span>
+                        {on && (
+                          <span className="absolute right-2 top-2 grid h-4 w-4 place-items-center rounded-full bg-sky-ink text-[9px] text-white" aria-hidden>
+                            ✓
+                          </span>
+                        )}
                         {active && <span className="chip-ok absolute right-1.5 bottom-1.5 text-[9.5px] px-1 py-0">active</span>}
                       </button>
                     );
                   })}
                   {!robotTypeList.length && (
-                    <div className="col-span-2 rounded-2xl bg-paper p-4 text-center text-[12.5px] text-ink-3">
+                    <div className="sm:col-span-2 rounded-2xl border border-rule bg-paper/60 p-4 text-center text-[12.5px] text-ink-3">
                       <span>{fetching ? 'Loading robot types…' : 'No robot types yet'}</span>
                     </div>
                   )}
@@ -384,7 +331,7 @@ export default function HomePage() {
                         data-custom-robot={r.id}
                         onClick={() => openRobots({ mode: 'detail', id: r.id })}
                         title="Custom robot — open its profile (it is set up and verified there)"
-                        className="relative text-left rounded-2xl px-3 py-2.5 flex items-center gap-2.5 bg-paper hover:bg-paper-2 transition-all hover:-translate-y-[1px]"
+                        className="relative text-left rounded-2xl border border-rule px-3 py-3 flex items-center gap-2.5 bg-white hover:border-sky-ink/40 hover:shadow-card transition-all hover:-translate-y-[1px]"
                       >
                         <FamilyGlyph family="generic" className="h-9 w-9 shrink-0 text-ink-3" />
                         <span className="min-w-0">
@@ -400,9 +347,9 @@ export default function HomePage() {
                     type="button"
                     data-action="add-custom-robot"
                     onClick={() => openRobots({ mode: 'add' })}
-                    className="rounded-2xl px-3 py-2.5 flex items-center gap-2.5 border border-dashed border-paper-3 text-ink-2 hover:bg-paper hover:text-ink transition-all"
+                    className="group rounded-2xl px-3 py-3 flex items-center gap-2.5 border border-dashed border-ink-4/60 text-ink-2 hover:border-sky-ink/50 hover:bg-sky-50/60 hover:text-ink transition-all"
                   >
-                    <span className="h-9 w-9 shrink-0 grid place-items-center rounded-xl bg-paper text-[20px] leading-none">+</span>
+                    <span className="h-9 w-9 shrink-0 grid place-items-center rounded-xl bg-paper text-[20px] leading-none transition-colors group-hover:bg-sky-ink group-hover:text-white">+</span>
                     <span className="min-w-0">
                       <span className="block text-[13px] font-semibold truncate">Add Custom Robot</span>
                       <span className="block text-[11px] truncate text-ink-3">from a URDF / Xacro</span>
@@ -420,9 +367,9 @@ export default function HomePage() {
                   {confirmed ? `✓ ${robotType} confirmed — re-apply` : selected ? `Confirm ${selected}` : 'Choose a robot above'}
                 </button>
 
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-3 divide-x divide-rule overflow-hidden rounded-2xl border border-rule bg-paper/50">
                   {status.map((s) => (
-                    <div key={s.key} className="rounded-2xl bg-paper px-3 py-2 min-w-0">
+                    <div key={s.key} className="min-w-0 px-3 py-2.5">
                       <div className="label text-[9.5px] truncate">{s.label}</div>
                       <div className="flex items-center gap-1.5 mt-1">
                         <span className={clsx('h-2 w-2 rounded-full shrink-0', dot[s.tone], s.pulse && 'animate-pulsedot')} />
@@ -443,48 +390,6 @@ export default function HomePage() {
                 </button>
               </div>
             </section>
-          </div>
-
-          {/* workflow */}
-          <nav className="animate-rise" style={{ animationDelay: '240ms' }} aria-label="Workflow">
-            <ol className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
-              {STEPS.map((s) => {
-                const info = stepInfo(s.page);
-                return (
-                  <li key={s.page} className="min-w-0">
-                    <button
-                      type="button"
-                      onClick={() => go(s.page)}
-                      className={clsx(
-                        'group relative w-full h-full text-left rounded-2xl px-4 py-3 transition-all duration-200',
-                        'hover:-translate-y-[2px] hover:shadow-lift',
-                        info.state === 'current' ? 'bg-ink text-white shadow-lift' : 'bg-white/90 backdrop-blur-sm shadow-card',
-                        info.state === 'locked' && 'opacity-60'
-                      )}
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className={clsx('font-mono text-[10.5px]', info.state === 'done' ? 'text-signal-ok' : 'text-ink-4')}>
-                          {info.state === 'done' ? '✓' : s.code}
-                        </span>
-                        {info.badge > 0 && <span className="chip-warn num py-0">{info.badge}</span>}
-                        {info.state === 'locked' && <span className="label text-[9px]">locked</span>}
-                      </div>
-                      <div className="text-[14px] font-semibold mt-0.5 flex items-center gap-1">
-                        {s.name}
-                        <span className="opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all">→</span>
-                      </div>
-                      <div className={clsx('text-[11.5px] truncate', info.state === 'current' ? 'text-white/60' : 'text-ink-3')}>{info.text}</div>
-                      {info.pct != null && (
-                        <div className="mt-1.5 h-1 rounded-pill bg-paper-3 overflow-hidden">
-                          <div className="h-1 rounded-pill bg-signal-ok transition-all" style={{ width: `${info.pct}%` }} />
-                        </div>
-                      )}
-                    </button>
-                  </li>
-                );
-              })}
-            </ol>
-          </nav>
         </div>
       </div>
     </div>

@@ -3,6 +3,7 @@
 // When it is on and this browser has no session, the operator enters the access token here.
 
 import React, { useEffect, useState } from 'react';
+import { ReactComponent as RawLogo } from './assets/raw-logo.svg';
 
 async function session() {
   try {
@@ -57,8 +58,16 @@ export default function AuthGate({ children }) {
   return (
     <div className="h-screen w-screen bp-grid grid place-items-center">
       <form className="sheet w-[360px] p-6" onSubmit={submit} data-testid="login">
-        <span className="label">Sign in</span>
-        <h1 className="fade-text text-[34px] font-light tracking-tight mt-2">RawBot Studio</h1>
+        <div className="flex items-center justify-between">
+          <RawLogo className="h-[16px] w-auto text-ink" role="img" aria-label="RawBot Studio logo" />
+          <span className="label">Sign in</span>
+        </div>
+        <h1 className="text-[34px] font-light tracking-tight mt-4">
+          RawBot{' '}
+          <span className="font-normal bg-clip-text text-transparent" style={{ backgroundImage: 'linear-gradient(100deg, #2457E6 0%, #5B5BF0 45%, #8B5CF6 100%)' }}>
+            Studio
+          </span>
+        </h1>
         <p className="text-[12.5px] text-ink-3 mt-1 mb-4">
           The Operating System for Physical Intelligence. This station requires an operator access
           token.

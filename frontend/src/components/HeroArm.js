@@ -1,65 +1,74 @@
 // RawBot Studio: animated hero for the Home page.
 //
-// A shaded robot arm (two links, motor housings, cable, turntable base, parallel gripper)
-// repeats the task the platform is used for: pick up the cube and place it in the tray.
-// The pose comes from two-link inverse kinematics, so the gripper really reaches the
-// cube and the tray. Purely decorative: it is NOT driven by robot data (the live,
-// joint-driven model is the Simulation view in Record).
+// A small 3D scene drawn as SVG (no 3D library): a six-part manipulator (base, turntable,
+// shoulder, upper arm, elbow, forearm, wrist, parallel gripper), a cube and a tray, seen
+// in three-quarter perspective. Cylinders and boxes are projected through a perspective
+// camera, shaded from one light and sorted back to front; soft shadows fall on the floor.
+// The arm repeats the task the platform is used for - pick up the cube, place it in the
+// tray - with base rotation and two-link inverse kinematics, so the gripper really reaches
+// both. Purely decorative: it is NOT driven by robot data (the live, joint-driven model
+// is the Simulation view in Record). Static for prefers-reduced-motion.
 
 import React, { useEffect, useState } from 'react';
 
-const SHOULDER = { x: 190, y: 250 };
-const L1 = 140; // upper arm
-const L2 = 128; // forearm
-const WRIST_TO_TIP = 62; // wrist centre -> fingertips (gripper points down)
-const FLOOR = 330;
-const CUBE = 26;
-const TRAY = { x: 430, w: 70, h: 16, floor: 326 };
-const OPEN = 20; // finger half-gap
-const CLOSED = CUBE / 2 + 0.5;
+// ---------------------------------------------------------------- scene geometry (mm)
+const H_SHOULDER = 168; // shoulder axis height above the floor
+const L1 = 182; // upper arm
+const L2 = 170; // forearm
+const WRIST_DROP = 96; // wrist axis -> fingertips (gripper points down)
+const CUBE = 44;
+const TRAY = { r: 250, psi: 62, w: 128, d: 96, h: 16 };
+const OPEN = 34; // finger half-gap
+const CLOSED = CUBE / 2 + 4;
 
-// fingertip waypoints
-const P = {
-  home: [270, 190],
-  aboveCube: [320, 250],
-  grasp: [320, FLOOR - 6],
-  lift: [320, 230],
-  aboveTray: [TRAY.x, 230],
-  place: [TRAY.x, TRAY.floor - 6],
-  rise: [TRAY.x, 200],
+// fingertip waypoints: [radius, azimuth deg, height]
+const W = {
+  home: [175, 36, 230],
+  aboveCube: [255, 8, 120],
+  grasp: [255, 8, 12],
+  lift: [255, 8, 150],
+  aboveTray: [TRAY.r, TRAY.psi, 150],
+  place: [TRAY.r, TRAY.psi, TRAY.h + 12],
+  rise: [TRAY.r, TRAY.psi, 160],
 };
-
-// [duration s, from, to, grip from, grip to, label]
+// [duration s, from, to, gripper from, to]
 const PHASES = [
-  [0.6, 'home', 'home', OPEN, OPEN, 'Ready'],
-  [1.2, 'home', 'aboveCube', OPEN, OPEN, 'Approach'],
-  [0.9, 'aboveCube', 'grasp', OPEN, OPEN, 'Approach'],
-  [0.5, 'grasp', 'grasp', OPEN, CLOSED, 'Grasp'],
-  [0.9, 'grasp', 'lift', CLOSED, CLOSED, 'Lift'],
-  [1.4, 'lift', 'aboveTray', CLOSED, CLOSED, 'Transfer'],
-  [0.9, 'aboveTray', 'place', CLOSED, CLOSED, 'Place'],
-  [0.5, 'place', 'place', CLOSED, OPEN, 'Release'],
-  [0.7, 'place', 'rise', OPEN, OPEN, 'Retract'],
-  [1.3, 'rise', 'home', OPEN, OPEN, 'Return'],
-  [0.6, 'home', 'home', OPEN, OPEN, 'Ready'],
+  [0.9, 'home', 'home', OPEN, OPEN],
+  [1.8, 'home', 'aboveCube', OPEN, OPEN],
+  [1.1, 'aboveCube', 'grasp', OPEN, OPEN],
+  [0.7, 'grasp', 'grasp', OPEN, CLOSED],
+  [1.1, 'grasp', 'lift', CLOSED, CLOSED],
+  [2.2, 'lift', 'aboveTray', CLOSED, CLOSED],
+  [1.1, 'aboveTray', 'place', CLOSED, CLOSED],
+  [0.7, 'place', 'place', CLOSED, OPEN],
+  [1.0, 'place', 'rise', OPEN, OPEN],
+  [1.9, 'rise', 'home', OPEN, OPEN],
+  [1.0, 'home', 'home', OPEN, OPEN],
 ];
 const CYCLE = PHASES.reduce((s, p) => s + p[0], 0);
 
-const ease = (u) => (u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2);
+// quintic smootherstep: zero velocity and acceleration at both ends
+const smooth = (u) => u * u * u * (u * (u * 6 - 15) + 10);
 const lerp = (a, b, u) => a + (b - a) * u;
 
 function stateAt(t) {
-  let tt = t % CYCLE;
+  let tt = ((t % CYCLE) + CYCLE) % CYCLE;
   for (let i = 0; i < PHASES.length; i += 1) {
-    const [d, from, to, g0, g1, label] = PHASES[i];
+    const [d, from, to, g0, g1] = PHASES[i];
     if (tt <= d || i === PHASES.length - 1) {
-      const u = ease(Math.min(1, tt / d));
+      const u = smooth(Math.min(1, tt / d));
+      const a = W[from];
+      const b = W[to];
+      // lift before swinging and swing before lowering: height leads on the way up,
+      // azimuth leads on the way across, which keeps the path clear of the table
+      const uh = b[2] > a[2] ? smooth(Math.min(1, u * 1.35)) : smooth(Math.max(0, u * 1.35 - 0.35));
       return {
-        tip: [lerp(P[from][0], P[to][0], u), lerp(P[from][1], P[to][1], u)],
+        r: lerp(a[0], b[0], u),
+        psi: lerp(a[1], b[1], u),
+        h: lerp(a[2], b[2], from === to ? u : uh),
         grip: lerp(g0, g1, u),
         phase: i,
         u,
-        label,
       };
     }
     tt -= d;
@@ -67,83 +76,234 @@ function stateAt(t) {
   return null;
 }
 
-// two-link IK, elbow above the line shoulder -> wrist
-function solve(wx, wy) {
-  const dx = wx - SHOULDER.x;
-  const dy = wy - SHOULDER.y;
-  const d = Math.min(Math.hypot(dx, dy), L1 + L2 - 0.01);
-  const base = Math.atan2(dy, dx);
-  const off = Math.acos(Math.max(-1, Math.min(1, (L1 * L1 + d * d - L2 * L2) / (2 * L1 * d))));
-  const cands = [base - off, base + off].map((a) => ({
-    a,
-    ex: SHOULDER.x + L1 * Math.cos(a),
-    ey: SHOULDER.y + L1 * Math.sin(a),
-  }));
-  const e = cands[0].ey < cands[1].ey ? cands[0] : cands[1];
-  return { a1: e.a, ex: e.ex, ey: e.ey, a2: Math.atan2(wy - e.ey, wx - e.ex) };
+// --------------------------------------------------------------------------- vectors
+const add = (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
+const mul = (a, s) => [a[0] * s, a[1] * s, a[2] * s];
+const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+const norm = (a) => {
+  const l = Math.hypot(a[0], a[1], a[2]) || 1;
+  return [a[0] / l, a[1] / l, a[2] / l];
+};
+const Z = [0, 0, 1];
+const rad = (d) => (d * Math.PI) / 180;
+
+// -------------------------------------------------------------------------- camera
+const VIEW = { w: 760, h: 540 };
+const CAM = { yaw: rad(-32), pitch: rad(21), f: 1600, scale: 1.02, cx: 372, cy: 292, target: [110, 120, 130] };
+const cY = Math.cos(CAM.yaw);
+const sY = Math.sin(CAM.yaw);
+const cP = Math.cos(CAM.pitch);
+const sP = Math.sin(CAM.pitch);
+function viewOf(p) {
+  const x = p[0] - CAM.target[0];
+  const y = p[1] - CAM.target[1];
+  const z = p[2] - CAM.target[2];
+  const x1 = x * cY - y * sY;
+  const y1 = x * sY + y * cY;
+  return { x: x1, depth: y1 * cP - z * sP, up: z * cP + y1 * sP };
 }
-
-const deg = (r) => (r * 180) / Math.PI;
-
-function Link({ x, y, angle, length, width, grad }) {
-  const a = deg(angle);
-  return (
-    <>
-      {/* far side plate: gives the link thickness */}
-      <g transform={`translate(${x + 3} ${y + 4}) rotate(${a})`}>
-        <rect x={-width / 2} y={-width / 2} width={length + width} height={width} rx={width / 2} fill="#3A3F48" />
-      </g>
-      <g transform={`translate(${x} ${y}) rotate(${a})`}>
-        <rect x={-width / 2} y={-width / 2} width={length + width} height={width} rx={width / 2} fill={`url(#${grad})`} stroke="#7C838E" strokeWidth="0.6" />
-        {/* machined groove and highlight */}
-        <rect x={width * 0.4} y={-width * 0.12} width={length - width * 0.8} height={width * 0.24} rx={width * 0.12} fill="#1E2228" opacity="0.18" />
-        <line x1={width * 0.3} y1={-width * 0.36} x2={length - width * 0.3} y2={-width * 0.36} stroke="#FFFFFF" strokeWidth="1.2" strokeLinecap="round" opacity="0.75" />
-      </g>
-    </>
-  );
+function proj(p) {
+  const v = viewOf(p);
+  const k = CAM.f / (CAM.f + v.depth);
+  return [CAM.cx + v.x * k * CAM.scale, CAM.cy - v.up * k * CAM.scale, v.depth, k];
 }
+// direction of a world vector along the view axis: < 0 faces the camera
+const towards = (n) => (n[0] * sY + n[1] * cY) * cP - n[2] * sP;
+const LIGHT = norm([-0.45, -0.75, 0.9]);
 
-function Joint({ x, y, r, led }) {
-  const bolts = [0, 1, 2, 3, 4, 5].map((i) => {
-    const a = (i / 6) * Math.PI * 2 + Math.PI / 6;
-    return <circle key={i} cx={x + Math.cos(a) * r * 0.78} cy={y + Math.sin(a) * r * 0.78} r={r * 0.07} fill="#9BA3AE" />;
+const pts = (arr) => arr.map((p) => `${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
+function hull(points) {
+  const p = points.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const crs = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+  const lower = [];
+  p.forEach((q) => {
+    while (lower.length >= 2 && crs(lower[lower.length - 2], lower[lower.length - 1], q) <= 0) lower.pop();
+    lower.push(q);
   });
-  return (
-    <g>
-      <circle cx={x + 2} cy={y + 3} r={r} fill="#14171B" opacity="0.35" />
-      <circle cx={x} cy={y} r={r} fill="url(#housing)" />
-      <circle cx={x} cy={y} r={r - 1.2} fill="none" stroke="#2457E6" strokeWidth="1.4" opacity="0.85" />
-      <circle cx={x} cy={y} r={r * 0.62} fill="url(#cap)" stroke="#59606B" strokeWidth="0.5" />
-      {bolts}
-      <circle cx={x} cy={y} r={r * 0.2} fill="#1A1D22" />
-      <circle cx={x - r * 0.06} cy={y - r * 0.06} r={r * 0.07} fill="#FFFFFF" opacity="0.7" />
-      <circle cx={x + r * 0.7} cy={y - r * 0.7} r={1.6} fill="#38BDF8" opacity={led} />
+  const upper = [];
+  for (let i = p.length - 1; i >= 0; i -= 1) {
+    const q = p[i];
+    while (upper.length >= 2 && crs(upper[upper.length - 2], upper[upper.length - 1], q) <= 0) upper.pop();
+    upper.push(q);
+  }
+  return lower.slice(0, -1).concat(upper.slice(0, -1));
+}
+function basis(axis) {
+  const a = norm(axis);
+  const ref = Math.abs(a[2]) < 0.9 ? Z : [1, 0, 0];
+  const e1 = norm(cross(a, ref));
+  return [a, e1, cross(a, e1)];
+}
+function circle(c, axis, r, n = 36) {
+  const [, e1, e2] = basis(axis);
+  return Array.from({ length: n }, (_, i) => {
+    const t = (i / n) * Math.PI * 2;
+    return add(c, add(mul(e1, Math.cos(t) * r), mul(e2, Math.sin(t) * r)));
+  });
+}
+const shade = (hex, f) => {
+  const n = parseInt(hex.slice(1), 16);
+  const ch = (v) => Math.max(0, Math.min(255, Math.round(v * f)));
+  return `rgb(${ch(n >> 16)},${ch((n >> 8) & 255)},${ch(n & 255)})`;
+};
+
+// ------------------------------------------------------------------------ primitives
+// Each primitive returns {depth, el}; the scene is drawn back to front.
+const MATERIALS = {
+  white: { stops: ['#9AA3AF', '#E9EDF2', '#FFFFFF', '#D9DEE5', '#8F98A4'] },
+  graphite: { stops: ['#0E1013', '#2B3037', '#4A515B', '#23272D', '#0C0E10'] },
+  steel: { stops: ['#7E8691', '#D7DCE2', '#F7F9FB', '#BAC1CA', '#737B86'] },
+};
+
+function cylinder(key, c, axis, r, half, mat, cap) {
+  const a = norm(axis);
+  const c0 = add(c, mul(a, -half));
+  const c1 = add(c, mul(a, half));
+  const ring0 = circle(c0, a, r).map(proj);
+  const ring1 = circle(c1, a, r).map(proj);
+  const body = hull(ring0.concat(ring1));
+  const p0 = proj(c0);
+  const p1 = proj(c1);
+  let px = -(p1[1] - p0[1]);
+  let py = p1[0] - p0[0];
+  if (Math.hypot(px, py) < 1e-3) {
+    px = 1;
+    py = 0;
+  }
+  const l = Math.hypot(px, py);
+  px /= l;
+  py /= l;
+  const along = body.map((q) => q[0] * px + q[1] * py);
+  const lo = Math.min(...along);
+  const hi = Math.max(...along);
+  const mid = proj(c);
+  const base = mid[0] * px + mid[1] * py;
+  const g = `g-${key}`;
+  const stops = MATERIALS[mat].stops;
+  const capFront = towards(a) < 0 ? { ring: ring1, center: c1, n: a } : { ring: ring0, center: c0, n: mul(a, -1) };
+  const visibleCap = towards(capFront.n) < -0.02;
+  const el = (
+    <g key={key}>
+      <defs>
+        <linearGradient
+          id={g}
+          gradientUnits="userSpaceOnUse"
+          x1={mid[0] + px * (lo - base)}
+          y1={mid[1] + py * (lo - base)}
+          x2={mid[0] + px * (hi - base)}
+          y2={mid[1] + py * (hi - base)}
+        >
+          {stops.map((s, i) => (
+            <stop key={i} offset={[0, 0.28, 0.4, 0.7, 1][i]} stopColor={s} />
+          ))}
+        </linearGradient>
+      </defs>
+      <polygon points={pts(body)} fill={`url(#${g})`} />
+      {visibleCap && cap && cap(capFront.ring, capFront.center, capFront.n)}
+      {visibleCap && !cap && <polygon points={pts(capFront.ring)} fill={stops[3]} />}
     </g>
   );
+  return { depth: proj(c)[2], el };
 }
 
-function Cube({ x, bottom, opacity = 1 }) {
-  const s = CUBE;
-  const top = bottom - s;
-  const dx = 7;
-  const dy = 5;
-  return (
-    <g opacity={opacity}>
-      <path d={`M${x - s / 2} ${top} l${dx} ${-dy} h${s} l${-dx} ${dy} Z`} fill="#F07A7E" />
-      <path d={`M${x + s / 2} ${top} l${dx} ${-dy} v${s} l${-dx} ${dy} Z`} fill="#B8333A" />
-      <rect x={x - s / 2} y={top} width={s} height={s} fill="#E5484D" />
-      <rect x={x - s / 2} y={top} width={s} height={s} fill="url(#cubeShine)" />
+// joint cap: machined disc, blue ring, bolt circle, hub
+function jointCap(key, r, led) {
+  return (ring, center, n) => {
+    const disc = circle(center, n, r * 0.74).map(proj);
+    const blue = circle(center, n, r * 0.9).map(proj);
+    const hub = circle(add(center, mul(n, 0.5)), n, r * 0.26).map(proj);
+    const bolts = circle(center, n, r * 0.56, 6).map(proj);
+    const ledP = proj(add(center, mul(norm(cross(n, Z)), r * 0.62)));
+    return (
+      <g key={`${key}-cap`}>
+        <polygon points={pts(ring)} fill="#1A1D22" />
+        <polygon points={pts(blue)} fill="none" stroke="#2457E6" strokeWidth={1.8 * ring[0][3]} />
+        <polygon points={pts(disc)} fill="url(#capMetal)" />
+        {bolts.map((b, i) => (
+          <circle key={i} cx={b[0]} cy={b[1]} r={1.6 * b[3]} fill="#8B939E" />
+        ))}
+        <polygon points={pts(hub)} fill="#2A2F36" />
+        <circle cx={ledP[0]} cy={ledP[1]} r={1.9} fill="#38BDF8" opacity={led} />
+      </g>
+    );
+  };
+}
+
+function box(key, c, ex, ey, half, color, opts = {}) {
+  const ez = norm(cross(ex, ey));
+  const axes = [norm(ex), norm(ey), ez];
+  const corner = (sx, sy, sz) =>
+    add(c, add(mul(axes[0], sx * half[0]), add(mul(axes[1], sy * half[1]), mul(axes[2], sz * half[2]))));
+  const faces = [];
+  [0, 1, 2].forEach((ax) => {
+    [-1, 1].forEach((s) => {
+      const n = mul(axes[ax], s);
+      if (towards(n) >= -0.001) return;
+      const quad = [];
+      const o1 = (ax + 1) % 3;
+      const o2 = (ax + 2) % 3;
+      [
+        [-1, -1],
+        [1, -1],
+        [1, 1],
+        [-1, 1],
+      ].forEach(([a1, a2]) => {
+        const v = [0, 0, 0];
+        v[ax] = s;
+        v[o1] = a1;
+        v[o2] = a2;
+        quad.push(proj(corner(v[0], v[1], v[2])));
+      });
+      const light = 0.62 + 0.42 * Math.max(0, dot(n, LIGHT));
+      faces.push({ quad, fill: shade(color, light), top: ax === 2 && s > 0 });
+    });
+  });
+  const el = (
+    <g key={key} opacity={opts.opacity == null ? 1 : opts.opacity}>
+      {faces.map((f, i) => (
+        <polygon key={i} points={pts(f.quad)} fill={f.fill} stroke={shade(color, 0.7)} strokeWidth="0.4" strokeLinejoin="round" />
+      ))}
+      {opts.inset &&
+        faces
+          .filter((f) => f.top)
+          .map((f, i) => {
+            const cx = f.quad.reduce((s, q) => s + q[0], 0) / 4;
+            const cy = f.quad.reduce((s, q) => s + q[1], 0) / 4;
+            const ins = f.quad.map((q) => [cx + (q[0] - cx) * 0.8, cy + (q[1] - cy) * 0.74]);
+            return <polygon key={`in${i}`} points={pts(ins)} fill={shade(color, 0.86)} />;
+          })}
     </g>
   );
+  return { depth: proj(c)[2] + (opts.bias || 0), el };
 }
+
+// ------------------------------------------------------------------------ kinematics
+function pose(s) {
+  const psi = rad(s.psi);
+  const u = [Math.cos(psi), Math.sin(psi), 0];
+  const a = [-Math.sin(psi), Math.cos(psi), 0]; // joint axis, horizontal
+  const S = [0, 0, H_SHOULDER];
+  const wristH = s.h + WRIST_DROP;
+  const rho = s.r;
+  const dz = wristH - H_SHOULDER;
+  const D = Math.max(-1, Math.min(1, (rho * rho + dz * dz - L1 * L1 - L2 * L2) / (2 * L1 * L2)));
+  const q2 = Math.acos(D);
+  const q1 = Math.atan2(dz, rho) + Math.atan2(L2 * Math.sin(q2), L1 + L2 * Math.cos(q2));
+  const E = add(S, add(mul(u, L1 * Math.cos(q1)), mul(Z, L1 * Math.sin(q1))));
+  const Wr = add(mul(u, rho), [0, 0, wristH]);
+  return { u, a, S, E, Wr, tip: add(Wr, [0, 0, -WRIST_DROP]) };
+}
+
+const cyl = (r, psiDeg) => [r * Math.cos(rad(psiDeg)), r * Math.sin(rad(psiDeg)), 0];
 
 export default function HeroArm({ className }) {
-  const [t, setT] = useState(5.2);
+  const [t, setT] = useState(7.2);
   useEffect(() => {
     const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (reduce) return undefined;
     let raf;
-    const start = performance.now() - 5200;
+    const start = performance.now() - 7200;
     const loop = (now) => {
       setT((now - start) / 1000);
       raf = requestAnimationFrame(loop);
@@ -153,189 +313,126 @@ export default function HeroArm({ className }) {
   }, []);
 
   const s = stateAt(t);
-  const [tx, ty] = s.tip;
-  const wx = tx;
-  const wy = ty - WRIST_TO_TIP;
-  const k = solve(wx, wy);
+  const k = pose(s);
+  const led = 0.55 + 0.45 * Math.sin(t * 3.2);
+
+  // cube: on the table, held, or in the tray; a fresh one fades in at the end
+  const cubeHome = cyl(W.grasp[0], W.grasp[1]);
+  const trayC = cyl(TRAY.r, TRAY.psi);
   const held = s.phase >= 4 && s.phase <= 6;
   const inTray = s.phase >= 7;
-  // cube: on the table, in the gripper, or in the tray; a fresh cube fades in at the end
-  const cycleT = t % CYCLE;
-  const fade = s.phase === 10 ? s.u : 0;
-  let cube = { x: P.grasp[0], bottom: FLOOR };
-  if (s.phase === 3) cube = { x: P.grasp[0], bottom: FLOOR };
-  if (held) cube = { x: tx, bottom: ty + 6 };
-  if (inTray) cube = { x: TRAY.x, bottom: TRAY.floor };
-  const led = 0.55 + 0.45 * Math.sin(cycleT * 4);
-  const shoulderDeg = 90 + deg(k.a1);
-  const elbowDeg = deg(k.a2 - k.a1);
-  const wristDeg = 90 - deg(k.a2);
-  const tipHeight = Math.max(0, FLOOR - ty);
-  const palmY = wy + 14;
-  const fingerTop = wy + 26;
+  const fadeNew = s.phase === 10 ? s.u : 0;
+  const cubeYaw = held ? rad(s.psi) : inTray ? rad(TRAY.psi) : rad(W.grasp[1]);
+  const cubeAt = held
+    ? add(k.tip, [0, 0, CUBE / 2 - 12])
+    : inTray
+    ? add(trayC, [0, 0, TRAY.h + CUBE / 2])
+    : add(cubeHome, [0, 0, CUBE / 2]);
+  const cubeEx = [Math.cos(cubeYaw), Math.sin(cubeYaw), 0];
+  const cubeEy = [-Math.sin(cubeYaw), Math.cos(cubeYaw), 0];
 
-  const mono = { fontFamily: 'Geist Mono, ui-monospace, monospace' };
-  const row = (y, name, val, accent) => (
-    <g key={name}>
-      <text x="30" y={y} fontSize="8.5" fill="#737A85" {...mono}>{name}</text>
-      <text x="128" y={y} fontSize="8.5" fill={accent ? '#2457E6' : '#0B0C0E'} textAnchor="end" {...mono}>{val}</text>
-    </g>
-  );
+  const parts = [];
+  // base: plate, column, turntable
+  parts.push(cylinder('plate', [0, 0, 9], Z, 96, 9, 'graphite'));
+  parts.push(cylinder('column', [0, 0, 66], Z, 58, 48, 'white', (ring) => <polygon key="colcap" points={pts(ring)} fill="#EEF1F4" />));
+  parts.push(cylinder('band', [0, 0, 116], Z, 59, 3, 'graphite'));
+  parts.push(cylinder('turntable', [0, 0, 136], Z, 50, 17, 'graphite', (ring) => <polygon key="ttcap" points={pts(ring)} fill="#2E333A" />));
+  // arm
+  parts.push(cylinder('upper', add(k.S, mul(add(k.E, mul(k.S, -1)), 0.5)), add(k.E, mul(k.S, -1)), 25, L1 / 2, 'white'));
+  parts.push(cylinder('fore', add(k.E, mul(add(k.Wr, mul(k.E, -1)), 0.5)), add(k.Wr, mul(k.E, -1)), 19, L2 / 2, 'white'));
+  const joints = [
+    ['shoulder', k.S, 36, 34],
+    ['elbow', k.E, 29, 28],
+    ['wrist', k.Wr, 22, 22],
+  ];
+  joints.forEach(([name, c, r, half]) => {
+    const j = cylinder(name, c, k.a, r, half, 'graphite', jointCap(name, r, led));
+    parts.push({ ...j, depth: j.depth - 70 });
+  });
+  // wrist roll, gripper body, fingers
+  parts.push(cylinder('roll', add(k.Wr, [0, 0, -36]), Z, 15, 16, 'graphite', (ring) => <polygon key="rollcap" points={pts(ring)} fill="#2457E6" />));
+  parts.push(box('palm', add(k.Wr, [0, 0, -60]), k.a, k.u, [40, 17, 9], '#2B3037', { bias: -10 }));
+  [-1, 1].forEach((side) => {
+    parts.push(
+      box(`finger${side}`, add(k.Wr, add(mul(k.a, side * (s.grip + 4)), [0, 0, -WRIST_DROP + 23])), k.a, k.u, [4, 12, 23], '#C9CFD6', {
+        bias: -12,
+      })
+    );
+  });
+  // tray and cube
+  parts.push(box('tray', add(trayC, [0, 0, TRAY.h / 2]), cyl(1, TRAY.psi), cyl(1, TRAY.psi + 90), [TRAY.w / 2, TRAY.d / 2, TRAY.h / 2], '#C7D2E4', { inset: true, bias: 30 }));
+  parts.push(box('cube', cubeAt, cubeEx, cubeEy, [CUBE / 2, CUBE / 2, CUBE / 2], '#E5484D', { opacity: inTray ? 1 - fadeNew : 1, bias: held ? 0 : 6 }));
+  if (fadeNew > 0) {
+    parts.push(box('cube-new', add(cubeHome, [0, 0, CUBE / 2]), cyl(1, W.grasp[1]), cyl(1, W.grasp[1] + 90), [CUBE / 2, CUBE / 2, CUBE / 2], '#E5484D', { opacity: fadeNew, bias: 6 }));
+  }
+  parts.sort((p, q) => q.depth - p.depth);
+
+  // floor: grid, stage light, soft shadows (projected straight down)
+  const grid = [];
+  for (let i = -8; i <= 10; i += 1) {
+    const a0 = proj([i * 50, -420, 0]);
+    const a1 = proj([i * 50, 480, 0]);
+    const b0 = proj([-420, i * 50, 0]);
+    const b1 = proj([520, i * 50, 0]);
+    grid.push(<line key={`gx${i}`} x1={a0[0]} y1={a0[1]} x2={a1[0]} y2={a1[1]} />);
+    grid.push(<line key={`gy${i}`} x1={b0[0]} y1={b0[1]} x2={b1[0]} y2={b1[1]} />);
+  }
+  const stage = circle([120, 110, 0], Z, 330, 72).map(proj);
+  const floorPt = (p) => proj([p[0], p[1], 0]);
+  const sh = [k.S, k.E, k.Wr, k.tip].map(floorPt);
+  const tipLift = Math.max(0, s.h);
+  const cubeShadow = circle([cubeAt[0] + 6, cubeAt[1] - 6, 0], Z, CUBE * 0.62, 20).map(proj);
+  const base0 = proj([0, 0, 0]);
 
   return (
-    <svg viewBox="0 0 560 400" className={className} role="img" aria-label="Animated robot arm picking up a cube and placing it in a tray">
+    <svg viewBox={`0 0 ${VIEW.w} ${VIEW.h}`} className={className} role="img" aria-label="Animated robot arm picking up a cube and placing it in a tray">
       <defs>
-        <linearGradient id="linkA" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#FBFCFD" />
-          <stop offset="0.35" stopColor="#E3E7EC" />
-          <stop offset="0.75" stopColor="#B9C0C9" />
-          <stop offset="1" stopColor="#8E96A1" />
-        </linearGradient>
-        <linearGradient id="linkB" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#F7F9FB" />
-          <stop offset="0.4" stopColor="#DCE1E7" />
-          <stop offset="1" stopColor="#8C949F" />
-        </linearGradient>
-        <radialGradient id="housing" cx="0.35" cy="0.3" r="0.8">
-          <stop offset="0" stopColor="#4A505A" />
-          <stop offset="0.6" stopColor="#23272D" />
-          <stop offset="1" stopColor="#111316" />
+        <radialGradient id="stageLight" cx="0.5" cy="0.5" r="0.5">
+          <stop offset="0" stopColor="#FFFFFF" stopOpacity="0.95" />
+          <stop offset="0.5" stopColor="#F1F4FB" stopOpacity="0.55" />
+          <stop offset="0.95" stopColor="#F1F4FB" stopOpacity="0" />
         </radialGradient>
-        <radialGradient id="cap" cx="0.35" cy="0.3" r="0.85">
-          <stop offset="0" stopColor="#F4F6F8" />
-          <stop offset="0.7" stopColor="#B8BFC8" />
-          <stop offset="1" stopColor="#7F8792" />
-        </radialGradient>
-        <linearGradient id="column" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0" stopColor="#1C1F24" />
-          <stop offset="0.3" stopColor="#4B525C" />
-          <stop offset="0.55" stopColor="#2A2E35" />
-          <stop offset="1" stopColor="#14161A" />
-        </linearGradient>
-        <linearGradient id="plate" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0" stopColor="#B4BBC4" />
-          <stop offset="0.35" stopColor="#F2F4F7" />
-          <stop offset="1" stopColor="#9AA2AD" />
-        </linearGradient>
-        <linearGradient id="metal" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0" stopColor="#8E96A1" />
-          <stop offset="0.4" stopColor="#EEF1F4" />
-          <stop offset="1" stopColor="#7A828D" />
-        </linearGradient>
-        <linearGradient id="cubeShine" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#FFFFFF" stopOpacity="0.28" />
-          <stop offset="0.6" stopColor="#FFFFFF" stopOpacity="0" />
-        </linearGradient>
-        <linearGradient id="floorFade" x1="0" y1="0" x2="0" y2="1">
+        <radialGradient id="gridFade" cx="0.5" cy="0.5" r="0.5">
           <stop offset="0" stopColor="#FFFFFF" stopOpacity="1" />
-          <stop offset="1" stopColor="#FFFFFF" stopOpacity="0" />
-        </linearGradient>
-        <linearGradient id="frustum" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#2457E6" stopOpacity="0.10" />
-          <stop offset="1" stopColor="#2457E6" stopOpacity="0.02" />
-        </linearGradient>
-        <radialGradient id="shadow" cx="0.5" cy="0.5" r="0.5">
-          <stop offset="0" stopColor="#0B0C0E" stopOpacity="0.28" />
-          <stop offset="1" stopColor="#0B0C0E" stopOpacity="0" />
+          <stop offset="0.55" stopColor="#FFFFFF" stopOpacity="0.55" />
+          <stop offset="0.92" stopColor="#FFFFFF" stopOpacity="0" />
         </radialGradient>
-        <mask id="floorMask">
-          <rect x="0" y={FLOOR} width="560" height="70" fill="url(#floorFade)" />
+        <mask id="gridMask">
+          <polygon points={pts(stage)} fill="url(#gridFade)" />
         </mask>
+        <radialGradient id="capMetal" cx="0.35" cy="0.3" r="0.9">
+          <stop offset="0" stopColor="#FFFFFF" />
+          <stop offset="0.55" stopColor="#C9CFD7" />
+          <stop offset="1" stopColor="#7D8590" />
+        </radialGradient>
+        <filter id="softShadow" x="-30%" y="-30%" width="160%" height="160%">
+          <feGaussianBlur stdDeviation="7" />
+        </filter>
+        <filter id="tightShadow" x="-30%" y="-30%" width="160%" height="160%">
+          <feGaussianBlur stdDeviation="3.5" />
+        </filter>
       </defs>
 
-      {/* perspective floor */}
-      <g mask="url(#floorMask)" stroke="#0B0C0E" strokeWidth="0.6" opacity="0.22">
-        {[0, 1, 2, 3, 4, 5, 6].map((i) => {
-          const y = FLOOR + Math.pow(i / 6, 1.5) * 70;
-          return <line key={`h${i}`} x1="0" y1={y} x2="560" y2={y} />;
-        })}
-        {Array.from({ length: 15 }, (_, i) => {
-          const x0 = -60 + i * 50;
-          const vx = 290;
-          const vy = 180;
-          const x1 = vx + ((x0 - vx) * (400 - vy)) / (FLOOR - vy);
-          return <line key={`v${i}`} x1={x0} y1={FLOOR} x2={x1} y2={400} />;
-        })}
-      </g>
-      <line x1="20" y1={FLOOR} x2="540" y2={FLOOR} stroke="#0B0C0E" strokeWidth="0.8" opacity="0.35" />
-
-      {/* overhead camera and its field of view */}
-      <path d={`M478 76 L350 ${FLOOR} L540 ${FLOOR} Z`} fill="url(#frustum)" />
-      <line x1="478" y1="76" x2="350" y2={FLOOR} stroke="#2457E6" strokeWidth="0.7" strokeDasharray="3 4" opacity="0.45" />
-      <line x1="478" y1="76" x2="540" y2={FLOOR} stroke="#2457E6" strokeWidth="0.7" strokeDasharray="3 4" opacity="0.45" />
-      <g>
-        <rect x="462" y="58" width="32" height="18" rx="4" fill="url(#housing)" />
-        <circle cx="478" cy="76" r="5.5" fill="#111316" stroke="#59606B" strokeWidth="0.8" />
-        <circle cx="478" cy="76" r="2.4" fill="#2457E6" />
-        <circle cx="489" cy="63" r="1.4" fill="#38BDF8" opacity={led} />
-        <text x="500" y="66" fontSize="8" fill="#737A85" {...mono}>CAM 1</text>
+      <polygon points={pts(stage)} fill="url(#stageLight)" />
+      <g mask="url(#gridMask)" stroke="#5B6573" strokeWidth="0.55" opacity="0.32">
+        {grid}
       </g>
 
       {/* shadows */}
-      <ellipse cx={SHOULDER.x} cy={FLOOR + 2} rx="84" ry="9" fill="url(#shadow)" />
-      <ellipse cx={tx} cy={FLOOR + 1} rx={22 - Math.min(14, tipHeight / 12)} ry="4" fill="url(#shadow)" opacity={Math.max(0.25, 1 - tipHeight / 160)} />
-      <ellipse cx={TRAY.x + 4} cy={FLOOR + 1.5} rx="44" ry="5" fill="url(#shadow)" />
-
-      {/* tray (back) */}
-      <path d={`M${TRAY.x - TRAY.w / 2 + 6} ${FLOOR - TRAY.h - 6} h${TRAY.w} l-6 6 h${-TRAY.w} Z`} fill="#C9D3E3" />
-      <rect x={TRAY.x - TRAY.w / 2} y={FLOOR - TRAY.h} width={TRAY.w} height="2" fill="#AEB8C8" />
-
-      {/* cube: table / gripper / tray, and a fresh one at the end of the cycle */}
-      {!inTray && <Cube x={cube.x} bottom={cube.bottom} />}
-      {inTray && <Cube x={TRAY.x} bottom={TRAY.floor} opacity={1 - fade} />}
-      {s.phase === 10 && <Cube x={P.grasp[0]} bottom={FLOOR} opacity={fade} />}
-
-      {/* tray (front) */}
-      <path d={`M${TRAY.x - TRAY.w / 2} ${FLOOR - TRAY.h} h${TRAY.w} l6 -6 v${TRAY.h} l-6 6 Z`} fill="#8FA0BA" opacity="0.9" />
-      <rect x={TRAY.x - TRAY.w / 2} y={FLOOR - TRAY.h} width={TRAY.w} height={TRAY.h} rx="1.5" fill="#B7C5DA" opacity="0.92" />
-      <rect x={TRAY.x - TRAY.w / 2 + 4} y={FLOOR - TRAY.h + 3} width={TRAY.w - 8} height="1.4" fill="#FFFFFF" opacity="0.6" />
-
-      {/* base: plate + turntable column */}
-      <rect x={SHOULDER.x - 70} y={FLOOR - 12} width="140" height="12" fill="url(#plate)" />
-      <ellipse cx={SHOULDER.x} cy={FLOOR - 12} rx="70" ry="10" fill="#F6F8FA" stroke="#A9B1BB" strokeWidth="0.6" />
-      <rect x={SHOULDER.x - 28} y={SHOULDER.y} width="56" height={FLOOR - 12 - SHOULDER.y} fill="url(#column)" />
-      <ellipse cx={SHOULDER.x} cy={FLOOR - 12} rx="28" ry="6" fill="#1A1D22" opacity="0.5" />
-      <ellipse cx={SHOULDER.x} cy={SHOULDER.y} rx="28" ry="7" fill="#4B525C" />
-      <rect x={SHOULDER.x - 28} y={SHOULDER.y + 26} width="56" height="3" fill="#2457E6" opacity="0.8" />
-      <circle cx={SHOULDER.x + 16} cy={SHOULDER.y + 44} r="1.8" fill="#38BDF8" opacity={led} />
-
-      {/* cable from the base to the forearm */}
-      <path
-        d={`M${SHOULDER.x - 20} ${SHOULDER.y + 20} Q ${(SHOULDER.x + k.ex) / 2 - 26} ${(SHOULDER.y + k.ey) / 2 + 4} ${k.ex - 8} ${k.ey + 10}`}
-        fill="none" stroke="#1A1D22" strokeWidth="2.4" strokeLinecap="round" opacity="0.85"
+      <ellipse cx={base0[0]} cy={base0[1]} rx={112 * base0[3]} ry={40 * base0[3]} fill="#0B0C0E" opacity="0.22" filter="url(#softShadow)" />
+      <polyline
+        points={pts(sh)}
+        fill="none"
+        stroke="#0B0C0E"
+        strokeWidth="22"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        opacity={0.1}
+        filter="url(#softShadow)"
       />
+      <polygon points={pts(cubeShadow)} fill="#0B0C0E" opacity={held ? Math.max(0.06, 0.24 - tipLift / 900) : 0.24} filter="url(#tightShadow)" />
 
-      {/* upper arm, elbow, forearm */}
-      <Link x={SHOULDER.x} y={SHOULDER.y} angle={k.a1} length={L1} width={30} grad="linkA" />
-      <Link x={k.ex} y={k.ey} angle={k.a2} length={L2} width={24} grad="linkB" />
-      <Joint x={SHOULDER.x} y={SHOULDER.y} r={22} led={led} />
-      <Joint x={k.ex} y={k.ey} r={18} led={led} />
-
-      {/* wrist, wrist camera and parallel gripper (always pointing down) */}
-      <rect x={wx - 9} y={wy} width="18" height="16" fill="url(#metal)" />
-      <rect x={wx - 24} y={palmY} width="48" height="12" rx="3" fill="url(#housing)" />
-      <rect x={wx - 22} y={palmY + 4.5} width="44" height="1.5" fill="#2457E6" opacity="0.8" />
-      <rect x={wx + 14} y={palmY - 7} width="11" height="8" rx="2" fill="#23272D" />
-      <circle cx={wx + 19.5} cy={palmY - 3} r="2" fill="#2457E6" />
-      {[-1, 1].map((side) => (
-        <g key={side}>
-          <rect x={wx + side * s.grip - (side < 0 ? 7 : 0)} y={fingerTop} width="7" height="34" rx="2" fill="url(#metal)" stroke="#7C838E" strokeWidth="0.5" />
-          <rect x={wx + side * s.grip - (side < 0 ? 1.5 : 0)} y={fingerTop + 16} width="1.5" height="16" fill="#1A1D22" opacity="0.6" />
-        </g>
-      ))}
-      <Joint x={wx} y={wy} r={13} led={led} />
-
-      {/* live readout */}
-      <g>
-        <rect x="18" y="18" width="122" height="98" rx="8" fill="#FFFFFF" opacity="0.78" stroke="#DADDE2" strokeWidth="0.8" />
-        <circle cx="31" cy="33" r="2.6" fill="#2457E6" opacity={led} />
-        <text x="39" y="36" fontSize="8.5" fill="#0B0C0E" fontWeight="600" {...mono}>{s.label.toUpperCase()}</text>
-        {row(54, 'J2 SHOULDER', `${shoulderDeg.toFixed(1)}°`)}
-        {row(68, 'J3 ELBOW', `${elbowDeg.toFixed(1)}°`)}
-        {row(82, 'J4 WRIST', `${wristDeg.toFixed(1)}°`)}
-        {row(96, 'GRIPPER', s.grip < OPEN - 1 ? 'closed' : 'open', s.grip < OPEN - 1)}
-        {row(110, 'TCP HEIGHT', `${(tipHeight / 10).toFixed(1)} cm`)}
-      </g>
+      {parts.map((p) => p.el)}
     </svg>
   );
 }
