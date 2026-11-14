@@ -9,7 +9,8 @@
   * Dark mode: deep black and charcoal surfaces, white text, subtle blue highlights, on every
     page, dialog, chart and the sign-in screen. Home follows the dark reference design: a black
     canvas with a faint dot texture, white heading, the robot under a soft spotlight, and the
-    white robot panel and sidebar kept light.
+    white robot panel kept light. The sidebar is charcoal with light grey icons, the active
+    page in subtle blue, and a matching theme switch and Link/Robot box.
   * How: the neutral and tint colours in `tailwind.config.js` are CSS variables, defined in
     `frontend/src/theme.css` for both themes; `<html class="dark">` switches them. Strong fills
     with white text (blue buttons, red Stop, status colours) keep their colour in both themes.

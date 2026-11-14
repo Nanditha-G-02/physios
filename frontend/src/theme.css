@@ -6,8 +6,8 @@
    colours, so light mode looks exactly as before. <html class="dark"> switches to dark:
    deep black and charcoal surfaces, white text, subtle blue highlights.
 
-   .theme-light keeps a region light inside dark mode (the sidebar rail and the Home robot
-   panel, as in the dark reference design).
+   .theme-light keeps a region light inside dark mode (the Home robot panel, as in the dark
+   reference design).
    --------------------------------------------------------------------------------------- */
 :root,
 .theme-light {
@@ -171,5 +171,21 @@ html.dark svg:not(.hero-arm svg, .theme-light svg) :is([stroke='#E7E9ED'], [stro
 html.dark svg:not(.hero-arm svg, .theme-light svg) :is([fill='#CCDAFF'], [fill='#E5ECFF'], [fill='#F3F6FF']) { fill: #1b2b52; }
 html.dark svg:not(.hero-arm svg, .theme-light svg) :is([fill='#6A7171'], [fill='#7E848D']) { fill: var(--chart-label); }
 html.dark .hover\:bg-\[\#f8d9d9\]:hover { background-color: #4a1a1c; }
-/* the light rail is solid white over the dark page (the reference design) */
-html.dark aside.theme-light { background-color: #ffffff; border-color: #e5e7eb; }
+/* ---- dark mode: sidebar rail ------------------------------------------------------------
+   Charcoal rail, light grey icons and labels, the active page in subtle blue; the theme
+   switch and the Link/Robot box follow. Layout and sizes are unchanged. */
+html.dark aside.app-rail { background-color: #0b0e14 !important; border-color: rgba(255, 255, 255, 0.06); }
+html.dark aside.app-rail nav button { color: #aeb4be; }
+html.dark aside.app-rail nav button:hover { background-color: rgba(255, 255, 255, 0.05); color: #f2f4f8; }
+html.dark aside.app-rail nav button[aria-current='page'] {
+  background-color: rgba(61, 107, 245, 0.16); color: #ffffff;
+  box-shadow: inset 0 0 0 1px rgba(96, 140, 255, 0.45), 0 8px 22px -12px rgba(36, 87, 230, 0.7);
+}
+html.dark aside.app-rail nav button[aria-current='page'] span:first-child { color: #8fb0ff; }
+html.dark aside.app-rail [data-theme-option][aria-pressed='true'] {
+  background-color: rgba(61, 107, 245, 0.22); color: #ffffff;
+  box-shadow: inset 0 0 0 1px rgba(96, 140, 255, 0.45);
+}
+html.dark aside.app-rail [data-theme-option][aria-pressed='false'] { color: #8a919d; }
+html.dark aside.app-rail [data-theme-option][aria-pressed='false']:hover { color: #f2f4f8; }
+html.dark aside.app-rail .bg-paper { background-color: #141821; }

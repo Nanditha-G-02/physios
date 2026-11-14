@@ -168,7 +168,8 @@ Browser ─ RawBot Studio frontend ─┐
     values) and dark. Backgrounds of strong fills (blue/gray/status 400 and up, signal
     colours) are fixed, so white text on them stays readable; `bg-ink` becomes a light fill
     in dark mode and its text turns dark.
-  * `.theme-light` keeps a region light in dark mode: the sidebar rail and the Home robot panel.
+  * `.theme-light` keeps a region light in dark mode: the Home robot panel. The sidebar rail
+    is charcoal in dark mode, with the active page in subtle blue.
   * New UI: use the theme tokens (`bg-white`, `bg-paper`, `text-ink*`, `border-rule`) rather
     than fixed hex colours, and check both themes. SVG charts that use fixed colours are
     mapped in `theme.css` ("charts and drawings").

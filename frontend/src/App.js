@@ -221,8 +221,8 @@ function App() {
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-paper text-ink bp-grid">
-      {/* theme-light: the rail stays light in dark mode too, as in the dark reference design */}
-      <aside className="theme-light w-[78px] shrink-0 bg-white/85 backdrop-blur border-r border-rule flex flex-col text-ink">
+      {/* app-rail: dark charcoal in dark mode (theme.css), active item in subtle blue */}
+      <aside className="app-rail w-[78px] shrink-0 bg-white/85 backdrop-blur border-r border-rule flex flex-col text-ink">
         <div className="h-12 flex items-center justify-center">
           <RawLogo className="h-[14px] w-auto text-ink" role="img" aria-label="RawBot Studio" />
         </div>
