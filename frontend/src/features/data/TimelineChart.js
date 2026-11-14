@@ -86,7 +86,7 @@ export default function TimelineChart({ data, time = 0, onSeek, markers = [] }) 
           <text x={6} y={31 + j * ROW} fontSize="9" fontFamily="Geist Mono, monospace" fill="#6A7171">
             {s.lo.toFixed(1)} … {s.hi.toFixed(1)}
           </text>
-          <path d={s.a} fill="none" stroke="#1C5A72" strokeWidth="1.1" strokeDasharray="3 2" />
+          <path d={s.a} fill="none" stroke="#7AA2FF" strokeWidth="1.1" strokeDasharray="3 2" />
           <path d={s.s} fill="none" stroke="#121414" strokeWidth="1.2" />
         </g>
       ))}
@@ -103,7 +103,7 @@ export default function TimelineChart({ data, time = 0, onSeek, markers = [] }) 
           </g>
         );
       })}
-      <line x1={px} x2={px} y1={2} y2={joints * ROW} stroke="#C76B1C" strokeWidth="1.5" />
+      <line x1={px} x2={px} y1={2} y2={joints * ROW} stroke="#0B0C0E" strokeWidth="1.5" />
       <g fontSize="9.5" fontFamily="Geist Mono, monospace" fill="#3A4040">
         <text x={LEFT} y={H - 6}>
           0 s
@@ -115,7 +115,7 @@ export default function TimelineChart({ data, time = 0, onSeek, markers = [] }) 
         <text x={LEFT + 144} y={H - 6}>
           state
         </text>
-        <line x1={LEFT + 190} x2={LEFT + 210} y1={H - 9} y2={H - 9} stroke="#1C5A72" strokeDasharray="3 2" />
+        <line x1={LEFT + 190} x2={LEFT + 210} y1={H - 9} y2={H - 9} stroke="#7AA2FF" strokeDasharray="3 2" />
         <text x={LEFT + 214} y={H - 6}>
           action
         </text>

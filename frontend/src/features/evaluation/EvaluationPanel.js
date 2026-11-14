@@ -30,11 +30,11 @@ import { Callout, Empty, Field, Modal, NumberInput, Select, Sheet, Spinner, Text
 
 // fixed categorical order (validated palette); success keeps slot 3 (aqua)
 export const OUTCOME_COLOR = {
-  success: '#1baf7a',
-  failed_grasp: '#eb6834',
-  missed_place: '#eda100',
-  collision: '#e87ba4',
-  timeout: '#2a78d6',
+  success: '#2457E6',
+  failed_grasp: '#0B0C0E',
+  missed_place: '#5E636C',
+  collision: '#9B9FA7',
+  timeout: '#A9C1FF',
   other: '#7E848D',
 };
 

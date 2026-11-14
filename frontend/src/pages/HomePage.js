@@ -213,15 +213,15 @@ export default function HomePage() {
 
   return (
     <div className="relative h-full w-full overflow-hidden">
-      {/* light canvas with soft blue and violet ambient light */}
+      {/* light canvas with soft blue ambient light (black, white and blue theme) */}
       <div
         className="absolute inset-0 pointer-events-none"
         aria-hidden
         style={{
           background:
             'radial-gradient(48% 55% at 82% 14%, rgba(36,87,230,0.12), rgba(36,87,230,0) 70%),' +
-            'radial-gradient(42% 50% at 10% 96%, rgba(139,92,246,0.10), rgba(139,92,246,0) 70%),' +
-            'radial-gradient(35% 40% at 40% 60%, rgba(91,91,240,0.05), rgba(91,91,240,0) 70%),' +
+            'radial-gradient(42% 50% at 10% 96%, rgba(11,12,14,0.04), rgba(11,12,14,0) 70%),' +
+            'radial-gradient(35% 40% at 40% 60%, rgba(36,87,230,0.04), rgba(36,87,230,0) 70%),' +
             'linear-gradient(180deg, #F8F9FB 0%, #F3F4F7 100%)',
         }}
       />
@@ -234,7 +234,7 @@ export default function HomePage() {
               RawBot{' '}
               <span
                 className="font-normal bg-clip-text text-transparent"
-                style={{ backgroundImage: 'linear-gradient(100deg, #2457E6 0%, #5B5BF0 45%, #8B5CF6 100%)' }}
+                style={{ backgroundImage: 'linear-gradient(100deg, #1D47C2 0%, #2457E6 45%, #4F7BFF 100%)' }}
               >
                 Studio
               </span>

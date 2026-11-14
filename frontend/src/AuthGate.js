@@ -64,7 +64,7 @@ export default function AuthGate({ children }) {
         </div>
         <h1 className="text-[34px] font-light tracking-tight mt-4">
           RawBot{' '}
-          <span className="font-normal bg-clip-text text-transparent" style={{ backgroundImage: 'linear-gradient(100deg, #2457E6 0%, #5B5BF0 45%, #8B5CF6 100%)' }}>
+          <span className="font-normal bg-clip-text text-transparent" style={{ backgroundImage: 'linear-gradient(100deg, #1D47C2 0%, #2457E6 45%, #4F7BFF 100%)' }}>
             Studio
           </span>
         </h1>

@@ -18,8 +18,8 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 
 const INK = '#121414';
-const SKY = '#A8D3E3';
-const SKY_INK = '#1C5A72';
+const SKY = '#CCDAFF';
+const SKY_INK = '#2457E6';
 const WARN = '#C76B1C';
 
 export function itemColor(item) {

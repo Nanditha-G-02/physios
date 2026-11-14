@@ -33,7 +33,7 @@ import { Segmented } from '../../components/ui';
 
 const INK = 0x121414;
 const RULE = 0xcdd0cb;
-const SKY = 0xa8d3e3;
+const SKY = 0xccdaff;
 
 const SO101_JOINTS = [
   { key: 'pan', match: /pan|joint1$|^j1$/i, axis: 'z' },
@@ -239,7 +239,7 @@ export default function SimulationView({ episode, plan, active = true, compact }
     const trailGeo = new THREE.BufferGeometry();
     trailGeo.setAttribute('position', new THREE.BufferAttribute(trailPos, 3));
     trailGeo.setDrawRange(0, 0);
-    const trail = new THREE.Line(trailGeo, new THREE.LineBasicMaterial({ color: 0x1c5a72 }));
+    const trail = new THREE.Line(trailGeo, new THREE.LineBasicMaterial({ color: 0x2457e6 }));
     scene.add(trail);
     let trailCount = 0;
 

@@ -18,7 +18,8 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { fmt } from './LineChart';
 
-export const SERIES = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300'];
+// black, white and blue theme: brand blue, black, light blue, greys
+export const SERIES = ['#2457E6', '#0B0C0E', '#7AA2FF', '#5E636C', '#A9C1FF', '#9B9FA7'];
 
 const W = 640;
 const H = 220;

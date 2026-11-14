@@ -2,6 +2,22 @@
 
 ## 2.0.0, renamed (2026-11-13)
 
+* **Black, white and blue theme across the application.** It follows the training
+  command panel: navy-black panels, white text, blue accents.
+  * Theme: one blue scale (brand blue `#2457E6`). The blue, indigo, violet, purple, cyan
+    and teal palettes all use it, so no other accent hue appears.
+  * Home: "Studio" in a blue gradient, a neutral canvas with soft blue light; in the robot
+    panel, a black Confirm button, a blue Continue button, a blue selected state and badge,
+    and a white-and-blue confirmed pill.
+  * Charts use brand blue, black, light blue and greys; the workspace and Simulation views
+    are blue instead of teal; the decorative pink and peach tints are gone.
+  * Unchanged:
+    * the animated Home robot (`HeroArm.js` is untouched);
+    * status colours: red for errors, Stop and emergency stop, green for OK/done, amber for
+      warnings;
+    * data colours: plan object colours and camera images;
+    * layout and functionality.
+  * The rule is recorded in `documentation/02-ARCHITECTURE.md`.
 * **Robot selection in liquid glass.** The "Select your robot" panel on Home uses a
   liquid-glass style:
   * a translucent blurred panel with a glowing gradient edge and a top reflection, over soft

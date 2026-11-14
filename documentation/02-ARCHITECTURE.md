@@ -143,6 +143,20 @@ Browser ─ RawBot Studio frontend ─┐
 
 ## Interface
 
+* **Colour rule: black, white and blue.** The whole interface uses one scheme: white and
+  light-grey surfaces, black text and black/navy panels, and one blue (`#2457E6` and its
+  shades) for accents. The reference is the training command panel: a navy-black panel,
+  white text, blue headings. This applies to every page, card, button, navigation element,
+  panel and interactive section, and to every future UI change.
+  * In `tailwind.config.js`, the blue, indigo, violet, purple, cyan and teal palettes map to
+    one blue scale (`BLUE`). The `sky` tokens hold the brand blue, and `night` holds the
+    navy-black panels.
+  * Two kinds of colour are allowed:
+    1. status: red for errors, Stop and emergency stop, green for OK/alive/done, amber for
+       warnings;
+    2. data: object colours chosen in a plan and camera images.
+  * The animated Home robot (`HeroArm.js`) keeps its own look and is not restyled by theme
+    changes.
 * **Design.** Paper/ink/sky tokens, Geist Sans and Geist Mono (bundled), with the compact
   theme:
   * 14 px root, 14 px cards with hairline borders, a dot-grid canvas;

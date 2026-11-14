@@ -401,7 +401,7 @@ export default function RunMonitor({ runId, onNewFrom }) {
           </p>
         </Sheet>
         <Sheet title="Learning rate">
-          <LineChart points={lrPts} yLabel="lr" color="#C2410C" />
+          <LineChart points={lrPts} yLabel="lr" color="#2457E6" />
         </Sheet>
         <Sheet title="GPU memory">
           <LineChart
@@ -422,7 +422,7 @@ export default function RunMonitor({ runId, onNewFrom }) {
             unit="%"
             yMin={0}
             yMax={100}
-            color="#C2410C"
+            color="#2457E6"
             empty="No samples for this run."
             xFormat={(v) => formatDuration(v)}
           />
@@ -444,9 +444,9 @@ export default function RunMonitor({ runId, onNewFrom }) {
       <section className="night-panel">
         <div className="flex flex-wrap items-center justify-between gap-2 px-5 pt-4">
           <div className="flex items-center gap-2">
-            <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f57]" />
-            <span className="h-2.5 w-2.5 rounded-full bg-[#febc2e]" />
-            <span className="h-2.5 w-2.5 rounded-full bg-[#28c840]" />
+            <span className="h-2.5 w-2.5 rounded-full bg-[#5E636C]" />
+            <span className="h-2.5 w-2.5 rounded-full bg-[#9B9FA7]" />
+            <span className="h-2.5 w-2.5 rounded-full bg-[#2457E6]" />
             <span className="ml-2 text-[12px] text-white/60 font-mono">run.log · {run.env?.name}</span>
           </div>
           <div className="flex items-center gap-2">

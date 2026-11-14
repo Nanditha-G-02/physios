@@ -71,7 +71,7 @@ function JointBars({ names, rows, limits }) {
               )}
               {rows.raw && (
                 <span
-                  className="absolute top-[3px] h-2.5 w-2.5 -translate-x-1/2 rounded-full border-2 border-[#eb6834] bg-white"
+                  className="absolute top-[3px] h-2.5 w-2.5 -translate-x-1/2 rounded-full border-2 border-[#2457E6] bg-white"
                   style={{ left: x(rows.raw[i]) }}
                   title={`model ${rows.raw[i]?.toFixed(3)}`}
                 />
@@ -92,7 +92,7 @@ function JointBars({ names, rows, limits }) {
           <span className="h-3 w-[3px] bg-ink" /> measured
         </span>
         <span className="inline-flex items-center gap-1">
-          <span className="h-2.5 w-2.5 rounded-full border-2 border-[#eb6834]" /> model output
+          <span className="h-2.5 w-2.5 rounded-full border-2 border-[#2457E6]" /> model output
         </span>
         <span className="inline-flex items-center gap-1">
           <span className="h-2 w-2 rounded-full bg-sky-ink" /> sent (after limits)

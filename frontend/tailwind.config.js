@@ -1,4 +1,10 @@
 /** @type {import('tailwindcss').Config} */
+// Black, white and blue theme: one blue scale (brand blue #2457E6 at 600) used for every
+// accent palette, so stray indigo/violet/purple/cyan/teal styles render as the same blue.
+const BLUE = {
+  50: '#F3F6FF', 100: '#E5ECFF', 200: '#CCDAFF', 300: '#A9C1FF', 400: '#7AA2FF', 500: '#4F7BFF',
+  600: '#2457E6', 700: '#1D47C2', 800: '#193A9C', 900: '#172F75', 950: '#0F1D4A',
+};
 module.exports = {
   content: ['./src/**/*.{js,jsx,ts,tsx}'],
   theme: {
@@ -14,6 +20,12 @@ module.exports = {
         rule: { DEFAULT: '#E5E7EB', strong: '#0B0C0E' },
         sky: { DEFAULT: '#D6E3FF', 50: '#F3F6FF', 100: '#E5ECFF', ink: '#2457E6' },
         night: { DEFAULT: '#070B16', 2: '#0E1526', 3: '#16203A', glow: '#3D7BFF' },
+        blue: BLUE,
+        indigo: BLUE,
+        violet: BLUE,
+        purple: BLUE,
+        cyan: BLUE,
+        teal: BLUE,
         signal: { ok: '#17834F', okbg: '#E4F4EB', warn: '#C2410C', warnbg: '#FDEEE3',
                   err: '#C42B2B', errbg: '#FCE9E9' },
       },

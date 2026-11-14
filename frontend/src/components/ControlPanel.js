@@ -79,7 +79,7 @@ export default function ControlPanel({
     {
       label: 'Start',
       icon: MdPlayArrow,
-      color: '#1976d2',
+      color: '#2457E6',
       description: page === PageType.RECORD ? 'Start recording task' : 'Start inference',
       shortcut: 'Space',
     },
@@ -98,14 +98,14 @@ export default function ControlPanel({
     {
       label: 'Skip\nTask',
       icon: MdNavigateNext,
-      color: '#388e3c',
+      color: '#0B0C0E',
       description: page === PageType.RECORD ? 'Skip current task' : '',
       shortcut: 'Ctrl+Shift+N',
     },
     {
       label: 'Retry',
       icon: MdReplay,
-      color: '#fbc02d',
+      color: '#5E636C',
       description:
         page === PageType.RECORD
           ? useMultiTaskMode
@@ -117,7 +117,7 @@ export default function ControlPanel({
     {
       label: 'Next',
       icon: MdSkipNext,
-      color: '#388e3c',
+      color: '#0B0C0E',
       description:
         page === PageType.RECORD
           ? useMultiTaskMode
@@ -129,7 +129,7 @@ export default function ControlPanel({
     {
       label: 'Finish',
       icon: MdCheck,
-      color: '#388e3c',
+      color: '#0B0C0E',
       description:
         page === PageType.RECORD
           ? useMultiTaskMode
@@ -666,7 +666,7 @@ export default function ControlPanel({
               cy="18"
               r="15.5"
               fill="none"
-              stroke="#2E7D4F"
+              stroke="#2457E6"
               strokeWidth="3.5"
               strokeDasharray={`${(epPct / 100) * 97.4} 97.4`}
               style={{ transition: 'stroke-dasharray .4s ease' }}

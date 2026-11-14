@@ -270,8 +270,8 @@ export default function OptimizationPanel({ runs, initialRunId, onOpenRun, onSes
                 <MultiLineChart
                   log={logY}
                   series={[
-                    { id: 'train', label: 'training loss', color: '#2a78d6', points: d.series.loss },
-                    ...(d.series.eval_loss.length ? [{ id: 'val', label: 'validation loss (held-out episodes)', color: '#eb6834', points: d.series.eval_loss }] : []),
+                    { id: 'train', label: 'training loss', color: '#2457E6', points: d.series.loss },
+                    ...(d.series.eval_loss.length ? [{ id: 'val', label: 'validation loss (held-out episodes)', color: '#0B0C0E', points: d.series.eval_loss }] : []),
                   ]}
                 />
                 {!d.validation.enabled && (
@@ -287,25 +287,25 @@ export default function OptimizationPanel({ runs, initialRunId, onOpenRun, onSes
                 <MultiLineChart
                   log
                   series={[
-                    { id: 'g', label: 'grad norm', color: '#1baf7a', points: d.series.grad_norm },
-                    { id: 'c', label: `clip ${fmt(d.clip_norm)}`, color: '#eb6834', dashed: true, points: d.series.grad_norm.map((p) => ({ x: p.x, y: d.clip_norm })) },
+                    { id: 'g', label: 'grad norm', color: '#2457E6', points: d.series.grad_norm },
+                    { id: 'c', label: `clip ${fmt(d.clip_norm)}`, color: '#0B0C0E', dashed: true, points: d.series.grad_norm.map((p) => ({ x: p.x, y: d.clip_norm })) },
                   ]}
                 />
               </div>
               <div>
                 <div className="label mb-1">Learning rate</div>
-                <LineChart points={d.series.lr} yLabel="learning rate" color="#8a5cf5" yMin={0} />
+                <LineChart points={d.series.lr} yLabel="learning rate" color="#2457E6" yMin={0} />
               </div>
               <div>
                 <div className="label mb-1">Time per step (s)</div>
-                <LineChart points={d.series.step_time} yLabel="seconds per step" color="#eda100" yMin={0} />
+                <LineChart points={d.series.step_time} yLabel="seconds per step" color="#5E636C" yMin={0} />
               </div>
               <div>
                 <div className="label mb-1">GPU memory in use (MB, whole GPU)</div>
                 <LineChart
                   points={d.series.gpu_mb}
                   yLabel="MB"
-                  color="#008300"
+                  color="#0B0C0E"
                   yMin={0}
                   yMax={s.gpu_total_mb || undefined}
                   empty="No GPU samples (no NVIDIA GPU, or the run was not sampled)."
