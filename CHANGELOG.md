@@ -2,6 +2,18 @@
 
 ## 2.0.0, renamed (2026-11-13)
 
+* **Robot selection in liquid glass.** The "Select your robot" panel on Home uses a
+  liquid-glass style:
+  * a translucent blurred panel with a glowing gradient edge and a top reflection, over soft
+    blue, violet and cyan light;
+  * glass robot cards with a hover lift and light sweep, and a selected state with a tint,
+    gradient icon tile, check mark and glowing ring;
+  * glossy pill buttons: indigo-violet *Confirm*, mint *confirmed*, blue-violet *Continue*;
+  * a glass status strip.
+
+  The styles are scoped `lg-` classes in `index.css`, so no other page changes. Robots,
+  selection, confirmation, custom robots, status and navigation are unchanged. The panel
+  stops moving for visitors who prefer reduced motion.
 * **Home page, refined.**
   * The robot animation is now a 3D scene in three-quarter perspective, drawn as SVG with
     no 3D library (`components/HeroArm.js`):

@@ -248,22 +248,18 @@ export default function HomePage() {
             </div>
           </div>
 
-          <section
-            className="relative rounded-[24px] border border-white/80 bg-white/85 backdrop-blur-xl animate-rise"
-            style={{
-              animationDelay: '120ms',
-              boxShadow:
-                '0 0 0 1px rgba(15,23,42,0.05), 0 1px 0 rgba(255,255,255,0.9) inset, 0 10px 24px -14px rgba(15,23,42,0.18), 0 32px 64px -32px rgba(36,87,230,0.28)',
-            }}
-            aria-label="Robot selection"
-          >
-            <header className="flex items-start justify-between gap-3 px-6 pt-5 pb-4 border-b border-rule">
+          <div className="lg-stage animate-rise" style={{ animationDelay: '120ms' }}>
+          <span className="lg-orb lg-orb-a" aria-hidden />
+          <span className="lg-orb lg-orb-b" aria-hidden />
+          <span className="lg-orb lg-orb-c" aria-hidden />
+          <section className="lg-panel" aria-label="Robot selection">
+            <header className="lg-divider flex items-start justify-between gap-3 px-6 pt-5 pb-4">
               <div>
-                <div className="label">Step 1 of 6</div>
-                <h2 className="mt-1 text-[19px] font-semibold tracking-[-0.01em] text-ink">Select your robot</h2>
+                <div className="label tracking-[0.12em]">Step 1 of 6</div>
+                <h2 className="lg-title mt-1.5 text-[21px] font-semibold tracking-[-0.02em]">Select your robot</h2>
               </div>
               <button
-                className="btn btn-sm"
+                className="lg-btn lg-btn-sm"
                 onClick={fetchRobotTypes}
                 disabled={fetching}
                 title="Reload robot types from the server"
@@ -274,10 +270,10 @@ export default function HomePage() {
             </header>
             <div className="space-y-4 p-6">
                 {fetchError && (
-                  <div className="rounded-xl bg-signal-errbg px-3 py-2 text-[12.5px]">{fetchError}</div>
+                  <div className="lg-alert">{fetchError}</div>
                 )}
                 <div
-                  className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[248px] overflow-y-auto scroll-thin pr-0.5"
+                  className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[268px] overflow-y-auto scroll-thin p-1 -m-1"
                   role="radiogroup"
                   aria-label="Robot type"
                 >
@@ -294,31 +290,27 @@ export default function HomePage() {
                         data-robot={t}
                         disabled={saving || busy}
                         onClick={() => setSelected(t)}
-                        className={clsx(
-                          'group relative overflow-hidden text-left rounded-2xl border px-3 py-3 flex items-center gap-2.5 transition-all duration-200 animate-rise',
-                          'hover:-translate-y-[1px] disabled:opacity-60',
-                          on
-                            ? 'border-sky-ink bg-sky-50 ring-4 ring-sky-ink/10 shadow-card'
-                            : 'border-rule bg-white hover:border-sky-ink/40 hover:shadow-card'
-                        )}
+                        className={clsx('lg-tile group animate-rise', on && 'is-on')}
                         style={{ animationDelay: `${180 + i * 40}ms` }}
                       >
-                        <FamilyGlyph family={fam.key} className={clsx('h-9 w-9 shrink-0 transition-colors', on ? 'text-sky-ink' : 'text-ink-3 group-hover:text-ink-2')} />
+                        <span className="lg-icon">
+                          <FamilyGlyph family={fam.key} className="h-7 w-7" />
+                        </span>
                         <span className="min-w-0">
                           <span className="block text-[13px] font-semibold truncate">{t}</span>
-                          <span className="block text-[11px] truncate text-ink-3">{fam.name}</span>
+                          <span className="lg-sub block text-[11px] truncate">{fam.name}</span>
                         </span>
                         {on && (
-                          <span className="absolute right-2 top-2 grid h-4 w-4 place-items-center rounded-full bg-sky-ink text-[9px] text-white" aria-hidden>
+                          <span className="lg-check" aria-hidden>
                             ✓
                           </span>
                         )}
-                        {active && <span className="chip-ok absolute right-1.5 bottom-1.5 text-[9.5px] px-1 py-0">active</span>}
+                        {active && <span className="lg-chip-active">active</span>}
                       </button>
                     );
                   })}
                   {!robotTypeList.length && (
-                    <div className="sm:col-span-2 rounded-2xl border border-rule bg-paper/60 p-4 text-center text-[12.5px] text-ink-3">
+                    <div className="lg-tile lg-tile-add sm:col-span-2 justify-center p-4 text-[12.5px] lg-sub">
                       <span>{fetching ? 'Loading robot types…' : 'No robot types yet'}</span>
                     </div>
                   )}
@@ -331,12 +323,14 @@ export default function HomePage() {
                         data-custom-robot={r.id}
                         onClick={() => openRobots({ mode: 'detail', id: r.id })}
                         title="Custom robot — open its profile (it is set up and verified there)"
-                        className="relative text-left rounded-2xl border border-rule px-3 py-3 flex items-center gap-2.5 bg-white hover:border-sky-ink/40 hover:shadow-card transition-all hover:-translate-y-[1px]"
+                        className="lg-tile group"
                       >
-                        <FamilyGlyph family="generic" className="h-9 w-9 shrink-0 text-ink-3" />
+                        <span className="lg-icon">
+                          <FamilyGlyph family="generic" className="h-7 w-7" />
+                        </span>
                         <span className="min-w-0">
                           <span className="block text-[13px] font-semibold truncate">{r.name}</span>
-                          <span className="block text-[11px] truncate text-ink-3">
+                          <span className="lg-sub block text-[11px] truncate">
                             Custom · {stage ? `Stage ${stage} ${STAGE_NAMES[stage].toLowerCase()}` : 'draft'}
                           </span>
                         </span>
@@ -347,18 +341,18 @@ export default function HomePage() {
                     type="button"
                     data-action="add-custom-robot"
                     onClick={() => openRobots({ mode: 'add' })}
-                    className="group rounded-2xl px-3 py-3 flex items-center gap-2.5 border border-dashed border-ink-4/60 text-ink-2 hover:border-sky-ink/50 hover:bg-sky-50/60 hover:text-ink transition-all"
+                    className="lg-tile lg-tile-add group"
                   >
-                    <span className="h-9 w-9 shrink-0 grid place-items-center rounded-xl bg-paper text-[20px] leading-none transition-colors group-hover:bg-sky-ink group-hover:text-white">+</span>
+                    <span className="lg-plus">+</span>
                     <span className="min-w-0">
                       <span className="block text-[13px] font-semibold truncate">Add Custom Robot</span>
-                      <span className="block text-[11px] truncate text-ink-3">from a URDF / Xacro</span>
+                      <span className="lg-sub block text-[11px] truncate">from a URDF / Xacro</span>
                     </span>
                   </button>
                 </div>
 
                 <button
-                  className={clsx('w-full py-2.5 text-[14px]', confirmed ? 'btn' : 'btn-primary')}
+                  className={clsx('lg-btn w-full py-3 text-[14px]', confirmed ? 'lg-btn-mint' : 'lg-btn-primary')}
                   onClick={confirm}
                   disabled={!selected || saving || busy}
                   data-action="confirm-robot"
@@ -367,12 +361,12 @@ export default function HomePage() {
                   {confirmed ? `✓ ${robotType} confirmed — re-apply` : selected ? `Confirm ${selected}` : 'Choose a robot above'}
                 </button>
 
-                <div className="grid grid-cols-3 divide-x divide-rule overflow-hidden rounded-2xl border border-rule bg-paper/50">
+                <div className="lg-status">
                   {status.map((s) => (
                     <div key={s.key} className="min-w-0 px-3 py-2.5">
                       <div className="label text-[9.5px] truncate">{s.label}</div>
                       <div className="flex items-center gap-1.5 mt-1">
-                        <span className={clsx('h-2 w-2 rounded-full shrink-0', dot[s.tone], s.pulse && 'animate-pulsedot')} />
+                        <span className={clsx('lg-dot h-2 w-2 rounded-full shrink-0', dot[s.tone], s.pulse && 'animate-pulsedot')} />
                         <span className="text-[12.5px] font-medium truncate" data-status={s.key}>
                           {s.value}
                         </span>
@@ -385,11 +379,12 @@ export default function HomePage() {
                   <p className="text-[12px] text-signal-warn">A task is running — the robot type is locked until it finishes.</p>
                 )}
 
-                <button className="btn-sky w-full" disabled={!robotType} onClick={() => go(PageType.PLANNING)}>
+                <button className="lg-btn lg-btn-cta w-full py-3 text-[13.5px]" disabled={!robotType} onClick={() => go(PageType.PLANNING)}>
                   Continue to Planning →
                 </button>
               </div>
             </section>
+          </div>
         </div>
       </div>
     </div>
