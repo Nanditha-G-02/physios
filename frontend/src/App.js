@@ -17,6 +17,7 @@
 
 import React, { useEffect, useRef } from 'react';
 import clsx from 'clsx';
+import ThemeToggle from './components/ThemeToggle';
 import { Toaster } from 'react-hot-toast';
 import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
@@ -220,7 +221,8 @@ function App() {
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-paper text-ink bp-grid">
-      <aside className="w-[78px] shrink-0 bg-white/85 backdrop-blur border-r border-rule flex flex-col">
+      {/* theme-light: the rail stays light in dark mode too, as in the dark reference design */}
+      <aside className="theme-light w-[78px] shrink-0 bg-white/85 backdrop-blur border-r border-rule flex flex-col text-ink">
         <div className="h-12 flex items-center justify-center">
           <RawLogo className="h-[14px] w-auto text-ink" role="img" aria-label="RawBot Studio" />
         </div>
@@ -256,6 +258,7 @@ function App() {
             );
           })}
         </nav>
+        <ThemeToggle />
         <div className="m-1.5 rounded-xl bg-paper px-2.5 py-2 space-y-1">
           <div className="flex items-center gap-1.5" title="rosbridge websocket">
             <span className={clsx('h-1.5 w-1.5 rounded-full', linked ? 'bg-signal-ok' : 'bg-signal-err')} />

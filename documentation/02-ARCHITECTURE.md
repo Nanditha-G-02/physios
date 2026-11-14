@@ -160,6 +160,18 @@ Browser ─ RawBot Studio frontend ─┐
   * Home keeps its own black-and-white look: grey "Studio" gradient, neutral canvas, a
     neutral-glass robot panel with black buttons and selected state. Only the robot is in
     colour (silver links, black joints and base, blue joint rings, red cube).
+* **Light and dark mode.** The sidebar switch (`components/ThemeToggle.js`) sets
+  `<html class="dark">` and remembers the choice (`localStorage` key `rawbot.theme`;
+  `public/index.html` applies it before the first paint).
+  * `tailwind.config.js` reads paper, ink, rule, gray, sky and the tint shades of the blue and
+    status palettes from CSS variables; `src/theme.css` defines them for light (the original
+    values) and dark. Backgrounds of strong fills (blue/gray/status 400 and up, signal
+    colours) are fixed, so white text on them stays readable; `bg-ink` becomes a light fill
+    in dark mode and its text turns dark.
+  * `.theme-light` keeps a region light in dark mode: the sidebar rail and the Home robot panel.
+  * New UI: use the theme tokens (`bg-white`, `bg-paper`, `text-ink*`, `border-rule`) rather
+    than fixed hex colours, and check both themes. SVG charts that use fixed colours are
+    mapped in `theme.css` ("charts and drawings").
 * **Design.** Paper/ink/sky tokens, Geist Sans and Geist Mono (bundled), with the compact
   theme:
   * 14 px root, 14 px cards with hairline borders, a dot-grid canvas;

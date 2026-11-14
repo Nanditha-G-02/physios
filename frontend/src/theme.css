@@ -1,0 +1,175 @@
+/* ---------------------------------------------------------------------------------------
+   Light and dark themes.
+
+   tailwind.config.js reads the neutral and tint colours from these variables (R G B, so
+   opacity modifiers like bg-paper/60 keep working). The light values are the original
+   colours, so light mode looks exactly as before. <html class="dark"> switches to dark:
+   deep black and charcoal surfaces, white text, subtle blue highlights.
+
+   .theme-light keeps a region light inside dark mode (the sidebar rail and the Home robot
+   panel, as in the dark reference design).
+   --------------------------------------------------------------------------------------- */
+:root,
+.theme-light {
+  --c-paper: 244 245 247; --c-paper-2: 237 239 242; --c-paper-3: 226 229 234;
+  --c-ink: 11 12 14; --c-ink-2: 56 60 68; --c-ink-3: 115 122 133; --c-ink-4: 174 180 189;
+  --c-ink-fill: 11 12 14; --c-ink-fill-2: 56 60 68;
+  --c-rule: 229 231 235; --c-rule-strong: 11 12 14; --c-border-ink: 218 221 226;
+  --c-sky: 214 227 255; --c-sky-50: 243 246 255; --c-sky-100: 229 236 255; --c-sky-ink: 36 87 230;
+  --c-gray-50: 249 250 251; --c-gray-100: 243 244 246; --c-gray-200: 229 231 235;
+  --c-gray-300: 209 213 219; --c-gray-400: 156 163 175; --c-gray-500: 107 114 128;
+  --c-gray-600: 75 85 99; --c-gray-700: 55 65 81; --c-gray-800: 31 41 55; --c-gray-900: 17 24 39;
+  --c-blue-50: 243 246 255; --c-blue-100: 229 236 255; --c-blue-200: 204 218 255;
+  --c-blue-300: 169 193 255; --c-blue-400: 122 162 255; --c-blue-500: 79 123 255;
+  --c-blue-600: 36 87 230; --c-blue-700: 29 71 194; --c-blue-800: 25 58 156;
+  --c-blue-900: 23 47 117; --c-blue-950: 15 29 74;
+  --c-ok: 23 131 79; --c-okbg: 228 244 235; --c-warn: 194 65 12; --c-warnbg: 253 238 227;
+  --c-err: 196 43 43; --c-errbg: 252 233 233;
+  --sh-card: 0 0 0 1px rgba(15,23,42,0.06), 0 1px 2px rgba(15,23,42,0.04), 0 6px 18px -10px rgba(15,23,42,0.12);
+  --sh-lift: 0 0 0 1px rgba(15,23,42,0.08), 0 2px 4px rgba(15,23,42,0.06), 0 14px 32px -16px rgba(15,23,42,0.30);
+  /* chart and drawing colours used from JavaScript (var(--chart-…)) */
+  --chart-ink: #0B0C0E; --chart-grid: #E5E7EB; --chart-label: #737A85; --chart-soft: #AEB4BD;
+  --chart-surface: #FFFFFF;
+  color-scheme: light;
+}
+
+html.dark {
+  --c-paper: 7 9 13; --c-paper-2: 22 26 33; --c-paper-3: 32 37 46;
+  --c-ink: 242 244 248; --c-ink-2: 201 206 214; --c-ink-3: 138 145 157; --c-ink-4: 92 99 111;
+  --c-ink-fill: 236 239 243; --c-ink-fill-2: 206 211 219;
+  --c-rule: 33 38 47; --c-rule-strong: 242 244 248; --c-border-ink: 40 45 55;
+  --c-sky: 28 42 76; --c-sky-50: 15 24 48; --c-sky-100: 21 33 63; --c-sky-ink: 96 140 255;
+  --c-gray-50: 17 20 26; --c-gray-100: 22 26 33; --c-gray-200: 33 38 47;
+  --c-gray-300: 44 50 61; --c-gray-400: 92 99 111; --c-gray-500: 128 135 147;
+  --c-gray-600: 158 165 176; --c-gray-700: 187 193 202; --c-gray-800: 214 218 224;
+  --c-gray-900: 238 240 243;
+  --c-blue-50: 15 24 48; --c-blue-100: 21 33 63; --c-blue-200: 29 46 88;
+  --c-blue-300: 41 66 126; --c-blue-400: 122 162 255; --c-blue-500: 96 140 255;
+  --c-blue-600: 96 140 255; --c-blue-700: 130 166 255; --c-blue-800: 169 193 255;
+  --c-blue-900: 204 218 255; --c-blue-950: 229 236 255;
+  --c-ok: 62 196 128; --c-okbg: 14 42 28; --c-warn: 240 140 80; --c-warnbg: 52 26 12;
+  --c-err: 242 104 104; --c-errbg: 58 20 22;
+  --sh-card: 0 0 0 1px rgba(255,255,255,0.06), 0 1px 2px rgba(0,0,0,0.4), 0 10px 24px -14px rgba(0,0,0,0.7);
+  --sh-lift: 0 0 0 1px rgba(255,255,255,0.08), 0 2px 4px rgba(0,0,0,0.45), 0 16px 36px -16px rgba(0,0,0,0.8);
+  --chart-ink: #E9ECF1; --chart-grid: #232832; --chart-label: #8A919D; --chart-soft: #4A515C;
+  --chart-surface: #0F1218;
+  color-scheme: dark;
+}
+
+
+/* status palettes used by the older panels (green/red/yellow/orange/amber/emerald):
+   light = Tailwind defaults; dark = deep tints for 50-300, lighter tones for text 500-900 */
+:root, .theme-light {
+  --c-green-50: 240 253 244; --c-green-100: 220 252 231; --c-green-200: 187 247 208; --c-green-300: 134 239 172; --c-green-400: 74 222 128; --c-green-500: 34 197 94; --c-green-600: 22 163 74; --c-green-700: 21 128 61; --c-green-800: 22 101 52; --c-green-900: 20 83 45;
+  --c-red-50: 254 242 242; --c-red-100: 254 226 226; --c-red-200: 254 202 202; --c-red-300: 252 165 165; --c-red-400: 248 113 113; --c-red-500: 239 68 68; --c-red-600: 220 38 38; --c-red-700: 185 28 28; --c-red-800: 153 27 27; --c-red-900: 127 29 29;
+  --c-yellow-50: 254 252 232; --c-yellow-100: 254 249 195; --c-yellow-200: 254 240 138; --c-yellow-300: 253 224 71; --c-yellow-400: 250 204 21; --c-yellow-500: 234 179 8; --c-yellow-600: 202 138 4; --c-yellow-700: 161 98 7; --c-yellow-800: 133 77 14; --c-yellow-900: 113 63 18;
+  --c-orange-50: 255 247 237; --c-orange-100: 255 237 213; --c-orange-200: 254 215 170; --c-orange-300: 253 186 116; --c-orange-400: 251 146 60; --c-orange-500: 249 115 22; --c-orange-600: 234 88 12; --c-orange-700: 194 65 12; --c-orange-800: 154 52 18; --c-orange-900: 124 45 18;
+  --c-amber-50: 255 251 235; --c-amber-100: 254 243 199; --c-amber-200: 253 230 138; --c-amber-300: 252 211 77; --c-amber-400: 251 191 36; --c-amber-500: 245 158 11; --c-amber-600: 217 119 6; --c-amber-700: 180 83 9; --c-amber-800: 146 64 14; --c-amber-900: 120 53 15;
+  --c-emerald-50: 236 253 245; --c-emerald-100: 209 250 229; --c-emerald-200: 167 243 208; --c-emerald-300: 110 231 183; --c-emerald-400: 52 211 153; --c-emerald-500: 16 185 129; --c-emerald-600: 5 150 105; --c-emerald-700: 4 120 87; --c-emerald-800: 6 95 70; --c-emerald-900: 6 78 59;
+}
+html.dark {
+  --c-green-50: 15 34 29; --c-green-100: 16 45 34; --c-green-200: 18 63 41; --c-green-300: 21 88 51; --c-green-400: 74 222 128; --c-green-500: 74 222 128; --c-green-600: 74 222 128; --c-green-700: 134 239 172; --c-green-800: 187 247 208; --c-green-900: 220 252 231;
+  --c-red-50: 36 21 27; --c-red-100: 49 24 29; --c-red-200: 72 30 34; --c-red-300: 103 37 40; --c-red-400: 248 113 113; --c-red-500: 248 113 113; --c-red-600: 248 113 113; --c-red-700: 252 165 165; --c-red-800: 254 202 202; --c-red-900: 254 226 226;
+  --c-yellow-50: 35 32 21; --c-yellow-100: 48 42 20; --c-yellow-200: 70 58 18; --c-yellow-300: 101 81 16; --c-yellow-400: 250 204 21; --c-yellow-500: 250 204 21; --c-yellow-600: 250 204 21; --c-yellow-700: 253 224 71; --c-yellow-800: 254 240 138; --c-yellow-900: 254 249 195;
+  --c-orange-50: 37 26 22; --c-orange-100: 51 32 22; --c-orange-200: 74 42 22; --c-orange-300: 107 56 22; --c-orange-400: 251 146 60; --c-orange-500: 251 146 60; --c-orange-600: 251 146 60; --c-orange-700: 253 186 116; --c-orange-800: 254 215 170; --c-orange-900: 255 237 213;
+  --c-amber-50: 36 30 21; --c-amber-100: 50 39 20; --c-amber-200: 73 53 19; --c-amber-300: 106 73 18; --c-amber-400: 251 191 36; --c-amber-500: 251 191 36; --c-amber-600: 251 191 36; --c-amber-700: 252 211 77; --c-amber-800: 253 230 138; --c-amber-900: 254 243 199;
+  --c-emerald-50: 13 33 33; --c-emerald-100: 13 43 39; --c-emerald-200: 14 60 50; --c-emerald-300: 14 84 65; --c-emerald-400: 52 211 153; --c-emerald-500: 52 211 153; --c-emerald-600: 52 211 153; --c-emerald-700: 110 231 183; --c-emerald-800: 167 243 208; --c-emerald-900: 209 250 229;
+}
+
+/* smooth switch: only while the theme changes (ThemeToggle adds the class for 400 ms) */
+html.theme-anim,
+html.theme-anim *,
+html.theme-anim *::before,
+html.theme-anim *::after {
+  transition: background-color 0.35s ease, border-color 0.35s ease, color 0.35s ease,
+    fill 0.35s ease, stroke 0.35s ease, box-shadow 0.35s ease !important;
+}
+
+/* ---- dark mode: surfaces ---------------------------------------------------------------- */
+html.dark body { background: #07090d; color: #f2f4f8; }
+html.dark ::selection { background: rgba(96, 140, 255, 0.3); }
+html.dark * { scrollbar-color: #2c323d transparent; }
+html.dark *::-webkit-scrollbar-thumb { background: #2c323d; background-clip: padding-box; }
+html.dark *::-webkit-scrollbar-thumb:hover { background-color: #3d4450; }
+html.dark .scroll-thin { scrollbar-color: #2c323d transparent; }
+
+html.dark .bp-grid {
+  background-color: #07090d;
+  background-image:
+    radial-gradient(900px 520px at 88% -12%, rgba(61, 107, 245, 0.10), transparent 60%),
+    radial-gradient(700px 420px at -5% 105%, rgba(255, 255, 255, 0.025), transparent 60%),
+    radial-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+}
+
+/* white surfaces become charcoal cards (outside the regions kept light) */
+html.dark .bg-white:not(.theme-light, .theme-light *) { background-color: #0f1218; }
+html.dark .bg-white\/95:not(.theme-light, .theme-light *) { background-color: rgba(15, 18, 24, 0.95); }
+html.dark .bg-white\/90:not(.theme-light, .theme-light *) { background-color: rgba(15, 18, 24, 0.9); }
+html.dark .bg-white\/85:not(.theme-light, .theme-light *) { background-color: rgba(15, 18, 24, 0.85); }
+html.dark .bg-white\/70:not(.theme-light, .theme-light *) { background-color: rgba(15, 18, 24, 0.7); }
+html.dark .bg-white\/60:not(.theme-light, .theme-light *) { background-color: rgba(15, 18, 24, 0.6); }
+html.dark .bg-white\/50:not(.theme-light, .theme-light *) { background-color: rgba(15, 18, 24, 0.50); }
+html.dark .bg-white\/40:not(.theme-light, .theme-light *) { background-color: rgba(15, 18, 24, 0.40); }
+html.dark .bg-white\/75:not(.theme-light, .theme-light *) { background-color: rgba(15, 18, 24, 0.75); }
+html.dark .bg-white\/80:not(.theme-light, .theme-light *) { background-color: rgba(15, 18, 24, 0.80); }
+html.dark .hover\:bg-white:hover:not(.theme-light, .theme-light *),
+html.dark .focus\:bg-white:focus:not(.theme-light, .theme-light *) { background-color: #151922; }
+html.dark .to-white:not(.theme-light, .theme-light *) { --tw-gradient-to: #0f1218 var(--tw-gradient-to-position); }
+html.dark .sheet:not(.theme-light, .theme-light *) { background-color: #0f1218; }
+html.dark .sheet-soft:not(.theme-light, .theme-light *) { background-color: rgba(15, 18, 24, 0.7); }
+html.dark .input:not(.theme-light, .theme-light *) { background-color: #0b0e13; }
+html.dark .input:focus:not(.theme-light, .theme-light *) { background-color: #0f1218; }
+html.dark select:not(.theme-light, .theme-light *) option { background: #0f1218; color: #f2f4f8; }
+
+/* light fills that carry white text: the text turns dark */
+html.dark .bg-ink:not(.theme-light, .theme-light *),
+html.dark .bg-ink-2:not(.theme-light, .theme-light *),
+html.dark .hover\:bg-ink-2:hover:not(.theme-light, .theme-light *),
+html.dark .chip-ink:not(.theme-light, .theme-light *),
+html.dark .btn-primary:not(.theme-light, .theme-light *) { color: #0b0c0e; }
+html.dark .bg-ink:not(.theme-light, .theme-light *) .text-white,
+html.dark .btn-primary:not(.theme-light, .theme-light *) .text-white { color: #0b0c0e; }
+html.dark .bg-ink:not(.theme-light, .theme-light *) [class*='text-white/'],
+html.dark .btn-primary:not(.theme-light, .theme-light *) [class*='text-white/'] { color: rgba(11, 12, 14, 0.55); }
+html.dark .btn-primary:disabled:not(.theme-light, .theme-light *) { color: rgb(var(--c-ink-4)); }
+html.dark .btn-primary:not(.theme-light, .theme-light *) { box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4); }
+/* translucent ink washes (modal backdrops, overlays) stay dark */
+html.dark .bg-ink\/30, html.dark .bg-ink\/35, html.dark .bg-ink\/25 { background-color: rgba(0, 0, 0, 0.6); }
+html.dark .bg-ink\/15 { background-color: rgba(0, 0, 0, 0.4); }
+html.dark .bg-ink\/5 { background-color: rgba(255, 255, 255, 0.05); }
+
+html.dark .fade-text { background-image: linear-gradient(90deg, #f2f4f8 0%, #f2f4f8 35%, #5c636f 100%); }
+html.dark .btn-danger:hover:not(:disabled) { background-color: #4a1a1c; }
+html.dark .hatch-ink {
+  background-image: repeating-linear-gradient(-45deg, rgba(255, 255, 255, 0.06) 0 1px, transparent 1px 6px);
+}
+html.dark .orb { opacity: 0.18; }
+html.dark .border-white:not(.theme-light, .theme-light *) { border-color: #0f1218; }
+html.dark .ring-white:not(.theme-light, .theme-light *) { --tw-ring-color: #0f1218; }
+
+/* ---- dark mode: Home (dark reference design) ------------------------------------------- */
+html.dark .hero-arm svg {
+  -webkit-mask-image: linear-gradient(180deg, #000 72%, transparent 97%);
+  mask-image: linear-gradient(180deg, #000 72%, transparent 97%);
+}
+html.dark .lg-panel {
+  background: rgba(255, 255, 255, 0.96);
+  color: #0b0c0e;
+  box-shadow: 0 30px 80px -20px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+/* ---- dark mode: charts and drawings ------------------------------------------------------
+   The SVG charts (joint timeline, training curves, workspace and evaluation maps) set their
+   colours as presentation attributes; CSS overrides them here, so the chart code is unchanged.
+   The Home arm (.hero-arm) and the light regions keep their own colours. */
+html.dark svg:not(.hero-arm svg, .theme-light svg) :is(rect, circle, path, ellipse, polygon):is([fill='#fff'], [fill='#FFF'], [fill='white'], [fill='#ffffff'], [fill='#FFFFFF']) { fill: var(--chart-surface); }
+html.dark svg:not(.hero-arm svg, .theme-light svg) :is([stroke='#fff'], [stroke='white']) { stroke: var(--chart-surface); }
+html.dark svg:not(.hero-arm svg, .theme-light svg) :is([stroke='#121414'], [stroke='#0B0C0E'], [stroke='#0b0c0e'], [stroke='#111'], [stroke='#000']) { stroke: var(--chart-ink); }
+html.dark svg:not(.hero-arm svg, .theme-light svg) :is(text, g, tspan):is([fill='#121414'], [fill='#0B0C0E'], [fill='#3A4040'], [fill='#383C44']) { fill: var(--chart-ink); }
+html.dark svg:not(.hero-arm svg, .theme-light svg) :is(circle, rect, path, polygon):is([fill='#121414'], [fill='#0B0C0E']) { fill: var(--chart-ink); }
+html.dark svg:not(.hero-arm svg, .theme-light svg) :is([stroke='#E7E9ED'], [stroke='#CDD0CB'], [stroke='#E3E4DC'], [stroke='#E5E7EB'], [stroke='#DADDE2'], [stroke='#ddd'], [stroke='#eee']) { stroke: var(--chart-grid); }
+html.dark svg:not(.hero-arm svg, .theme-light svg) :is([fill='#CCDAFF'], [fill='#E5ECFF'], [fill='#F3F6FF']) { fill: #1b2b52; }
+html.dark svg:not(.hero-arm svg, .theme-light svg) :is([fill='#6A7171'], [fill='#7E848D']) { fill: var(--chart-label); }
+html.dark .hover\:bg-\[\#f8d9d9\]:hover { background-color: #4a1a1c; }
+/* the light rail is solid white over the dark page (the reference design) */
+html.dark aside.theme-light { background-color: #ffffff; border-color: #e5e7eb; }

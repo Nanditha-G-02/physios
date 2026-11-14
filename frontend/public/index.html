@@ -14,6 +14,10 @@
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/apple-touch-icon.png?v=3" />
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
     <title>RawBot Studio</title>
+    <script>
+      // apply the saved light/dark theme before the first paint (see ThemeToggle.js)
+      try { if (localStorage.getItem('rawbot.theme') === 'dark') document.documentElement.classList.add('dark'); } catch (e) {}
+    </script>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>

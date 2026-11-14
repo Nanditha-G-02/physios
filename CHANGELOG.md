@@ -2,6 +2,19 @@
 
 ## 2.0.0, renamed (2026-11-13)
 
+* **Light and dark mode.** A Light/Dark switch in the sidebar (above Link/Robot) changes the
+  whole application. The choice is remembered in this browser and applied before the page
+  appears, so a reload in dark mode does not flash light; switching fades smoothly.
+  * Light mode is the existing design, unchanged.
+  * Dark mode: deep black and charcoal surfaces, white text, subtle blue highlights, on every
+    page, dialog, chart and the sign-in screen. Home follows the dark reference design: a black
+    canvas with a faint dot texture, white heading, the robot under a soft spotlight, and the
+    white robot panel and sidebar kept light.
+  * How: the neutral and tint colours in `tailwind.config.js` are CSS variables, defined in
+    `frontend/src/theme.css` for both themes; `<html class="dark">` switches them. Strong fills
+    with white text (blue buttons, red Stop, status colours) keep their colour in both themes.
+    Chart colours are adjusted in CSS, so the chart code is unchanged. `HeroArm.js` is
+    unchanged. No behaviour, layout or backend change.
 * **Home background texture.** A barely visible light-grey dot grid at the edges of the Home
   canvas, fading out behind the heading, robot and robot panel. Layout, colours, the robot
   and the robot panel are unchanged.

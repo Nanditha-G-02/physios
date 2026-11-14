@@ -17,12 +17,15 @@
 // connection status. The workflow pages are reached through the sidebar.
 // Home keeps its own black-and-white look (heading, canvas, robot panel) inside the app's
 // black, white and blue theme; the animated arm (HeroArm) keeps its own colours.
+// Dark mode: a deep black canvas with the arm under a soft spotlight, white type and the
+// robot panel kept light (theme-light), as in the dark reference design.
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import clsx from 'clsx';
 import toast from 'react-hot-toast';
 import HeroArm from '../components/HeroArm';
+import { useTheme } from '../components/ThemeToggle';
 import { useRosServiceCaller } from '../hooks/useRosServiceCaller';
 import { useRosLink } from '../hooks/useConnectionMonitor';
 import TaskPhase from '../constants/taskPhases';
@@ -212,19 +215,24 @@ export default function HomePage() {
     },
   ];
   const dot = { ok: 'bg-signal-ok', warn: 'bg-signal-warn', err: 'bg-signal-err', sky: 'bg-ink', idle: 'bg-ink-4' };
+  const dark = useTheme() === 'dark';
 
   return (
     <div className="relative h-full w-full overflow-hidden">
-      {/* light canvas with soft grey ambient light */}
+      {/* light canvas with soft grey ambient light; dark: deep black, a soft spotlight on the
+          arm and a faint blue glow behind the robot panel */}
       <div
         className="absolute inset-0 pointer-events-none"
         aria-hidden
         style={{
-          background:
-            'radial-gradient(48% 55% at 82% 14%, rgba(255,255,255,0.95), rgba(255,255,255,0) 70%),' +
-            'radial-gradient(42% 50% at 10% 96%, rgba(11,12,14,0.05), rgba(11,12,14,0) 70%),' +
-            'radial-gradient(35% 40% at 40% 60%, rgba(11,12,14,0.025), rgba(11,12,14,0) 70%),' +
-            'linear-gradient(180deg, #F8F9FB 0%, #F3F4F7 100%)',
+          background: dark
+            ? 'radial-gradient(520px 420px at 31% 69%, rgba(255,255,255,0.10), rgba(255,255,255,0) 70%),' +
+              'radial-gradient(60% 60% at 80% 45%, rgba(36,87,230,0.10), rgba(36,87,230,0) 70%),' +
+              'linear-gradient(180deg, #0C1018 0%, #06080D 100%)'
+            : 'radial-gradient(48% 55% at 82% 14%, rgba(255,255,255,0.95), rgba(255,255,255,0) 70%),' +
+              'radial-gradient(42% 50% at 10% 96%, rgba(11,12,14,0.05), rgba(11,12,14,0) 70%),' +
+              'radial-gradient(35% 40% at 40% 60%, rgba(11,12,14,0.025), rgba(11,12,14,0) 70%),' +
+              'linear-gradient(180deg, #F8F9FB 0%, #F3F4F7 100%)',
         }}
       />
       {/* barely visible texture: a fine light-grey dot grid that fades out towards the centre */}
@@ -232,7 +240,9 @@ export default function HomePage() {
         className="absolute inset-0 pointer-events-none"
         aria-hidden
         style={{
-          backgroundImage: 'radial-gradient(rgba(11,12,14,0.07) 0.8px, transparent 1.1px)',
+          backgroundImage: dark
+            ? 'radial-gradient(rgba(255,255,255,0.07) 0.8px, transparent 1.1px)'
+            : 'radial-gradient(rgba(11,12,14,0.07) 0.8px, transparent 1.1px)',
           backgroundSize: '22px 22px',
           WebkitMaskImage: 'radial-gradient(120% 95% at 50% 50%, transparent 25%, #000 85%)',
           maskImage: 'radial-gradient(120% 95% at 50% 50%, transparent 25%, #000 85%)',
@@ -247,16 +257,21 @@ export default function HomePage() {
               RawBot{' '}
               <span
                 className="font-normal bg-clip-text text-transparent"
-                style={{ backgroundImage: 'linear-gradient(100deg, #0B0C0E 0%, #4A4E57 55%, #9B9FA7 100%)' }}
+                style={{
+                  backgroundImage: dark
+                    ? 'linear-gradient(100deg, #F4F6FA 0%, #B7BDC8 55%, #6E7584 100%)'
+                    : 'linear-gradient(100deg, #0B0C0E 0%, #4A4E57 55%, #9B9FA7 100%)',
+                }}
               >
                 Studio
               </span>
             </h1>
-            <p className="mt-5 flex items-center gap-3 text-[15px] md:text-[18px] font-light tracking-[-0.01em] text-ink-2">
+            <p className="mt-5 flex items-center gap-3 text-[15px] md:text-[18px] font-light tracking-[-0.01em] text-ink-2 dark:text-[#A3AAB6]">
               <span className="h-px w-10 shrink-0 bg-gradient-to-r from-ink to-transparent" aria-hidden />
               The Operating System for Physical Intelligence.
             </p>
-            <div className="relative mt-4 -ml-2 w-full max-w-[860px]">
+            {/* dark: the arm's floor fades out at the bottom of the spotlight */}
+            <div className="hero-arm relative mt-4 -ml-2 w-full max-w-[860px]">
               <HeroArm className="h-auto w-full" />
             </div>
           </div>
@@ -265,7 +280,7 @@ export default function HomePage() {
           <span className="lg-orb lg-orb-a" aria-hidden />
           <span className="lg-orb lg-orb-b" aria-hidden />
           <span className="lg-orb lg-orb-c" aria-hidden />
-          <section className="lg-panel" aria-label="Robot selection">
+          <section className="lg-panel theme-light" aria-label="Robot selection">
             <header className="lg-divider flex items-start justify-between gap-3 px-6 pt-5 pb-4">
               <div>
                 <div className="label tracking-[0.12em]">Step 1 of 6</div>
