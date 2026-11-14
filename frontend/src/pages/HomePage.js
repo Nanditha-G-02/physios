@@ -227,6 +227,17 @@ export default function HomePage() {
             'linear-gradient(180deg, #F8F9FB 0%, #F3F4F7 100%)',
         }}
       />
+      {/* barely visible texture: a fine light-grey dot grid that fades out towards the centre */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        aria-hidden
+        style={{
+          backgroundImage: 'radial-gradient(rgba(11,12,14,0.07) 0.8px, transparent 1.1px)',
+          backgroundSize: '22px 22px',
+          WebkitMaskImage: 'radial-gradient(120% 95% at 50% 50%, transparent 25%, #000 85%)',
+          maskImage: 'radial-gradient(120% 95% at 50% 50%, transparent 25%, #000 85%)',
+        }}
+      />
 
       <div className="relative h-full overflow-y-auto scroll-thin">
         <div className="mx-auto grid w-full max-w-[1380px] min-h-full items-center gap-x-14 gap-y-8 px-6 py-10 md:px-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,430px)]">

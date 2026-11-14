@@ -2,6 +2,9 @@
 
 ## 2.0.0, renamed (2026-11-13)
 
+* **Home background texture.** A barely visible light-grey dot grid at the edges of the Home
+  canvas, fading out behind the heading, robot and robot panel. Layout, colours, the robot
+  and the robot panel are unchanged.
 * **Data → Episodes: compact Observation.** The Global and Gripper camera feeds sit side by
   side at a fixed height (150–250 px depending on the window, 16:9 frame, video letterboxed,
   aspect ratio kept), so the playback bar and the joint graphs are visible below them
