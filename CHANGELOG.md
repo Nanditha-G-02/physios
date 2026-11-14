@@ -2,6 +2,23 @@
 
 ## 2.0.0, renamed (2026-11-13)
 
+* **Training page: compact dataset list, search and browsing.**
+  * Dataset cards are compact, in two columns on wide screens: name, LeRobot version, size,
+    episodes, accepted/rejected, robot, fps and frames, cameras, task and folder, as before.
+    About four times as many datasets fit on screen.
+  * A search bar filters as you type, by name, robot, task, camera, version or folder (all
+    words must match).
+  * *Browse files…* opens a folder browser for this PC. Pick a LeRobot dataset (it contains
+    `meta/info.json`) or a folder of `owner/dataset` folders, and it joins the list. Its
+    location is remembered in `dataset_roots.json` in the training service's data folder;
+    nothing is copied or changed.
+  * Training service: two new endpoints, `GET /api/browse?path=` (folder names only,
+    read-only) and `POST /api/dataset-roots`. Existing endpoints and data formats are
+    unchanged.
+  * Dataset selection, the health report, the hand-off from Data and all later steps are
+    unchanged.
+* **Home robot colours.** The robot keeps the reference look: silver links, black joints
+  and base, blue joint rings. `HeroArm.js` is unchanged since `dda80c8`.
 * **Black, white and blue theme across the application.** It follows the training
   command panel: navy-black panels, white text, blue accents.
   * Theme: one blue scale (brand blue `#2457E6`). The blue, indigo, violet, purple, cyan

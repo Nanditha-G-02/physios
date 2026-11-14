@@ -111,70 +111,231 @@ function Offline({ message, onRetry }) {
 }
 
 // ---------------------------------------------------------------------------
-function DatasetStep({ datasets, roots, value, onPick, env }) {
-  if (!datasets) return <Spinner />;
-  if (!datasets.length) {
-    return <Empty title="No datasets found">Looked in {roots.join(', ')}. Record episodes in the Record session first.</Empty>;
-  }
+// Dataset search: name, robot, task, cameras, version, folder
+const dsText = (d) =>
+  [d.id, d.robot_type, d.codebase_version && `v${d.codebase_version} lerobot ${d.codebase_version}`, d.path,
+    ...(d.tasks || []), ...(d.cameras || [])]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+
+// Browse this PC (through the training service) for a LeRobot dataset or a folder of them.
+function DatasetBrowser({ get, post, roots, onClose, onAdded }) {
+  const [path, setPath] = useState('');
+  const [typed, setTyped] = useState('');
+  const [view, setView] = useState(null);
+  const [hidden, setHidden] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const open = useCallback(
+    async (to) => {
+      setBusy(true);
+      try {
+        const r = await get(`/browse${to ? `?path=${encodeURIComponent(to)}` : ''}`);
+        setView(r);
+        setPath(r.path);
+        setTyped(r.path);
+      } catch (e) {
+        toast.error(e.message);
+      } finally {
+        setBusy(false);
+      }
+    },
+    [get]
+  );
+  useEffect(() => {
+    open(roots[0] || '');
+  }, [open, roots]);
+  useEffect(() => {
+    const k = (e) => e.key === 'Escape' && onClose();
+    window.addEventListener('keydown', k);
+    return () => window.removeEventListener('keydown', k);
+  }, [onClose]);
+  const use = async (target) => {
+    setBusy(true);
+    try {
+      const r = await post('/dataset-roots', { path: target });
+      toast.success(r.dataset ? 'Dataset added' : `Dataset folder added: ${r.root}`);
+      await onAdded(r.dataset);
+      onClose();
+    } catch (e) {
+      toast.error(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+  const entries = (view?.entries || []).filter((e) => hidden || !e.hidden);
+  const shortcuts = [
+    ...roots.map((r) => ({ label: r.replace(view?.home || '~', '~'), path: r })),
+    { label: 'Home', path: view?.home || '~' },
+  ];
   return (
-    <div className="grid gap-3">
-      {datasets.map((d) => {
-        const sel = value === d.path;
-        const rc = d.review_counts || {};
-        return (
-          <button
-            key={d.path}
-            data-dataset={d.id}
-            onClick={() => onPick(d.path)}
-            className={clsx(
-              'text-left rounded-2xl p-4 transition-all border',
-              sel ? 'bg-ink text-white border-ink shadow-lift' : 'bg-white border-transparent shadow-card hover:shadow-lift',
-            )}
+    <div className="fixed inset-0 z-50 grid place-items-center bg-ink/30 backdrop-blur-[2px] p-4" onMouseDown={onClose}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Browse for a dataset"
+        data-dialog="dataset-browser"
+        className="w-full max-w-[680px] rounded-2xl bg-white shadow-lift overflow-hidden animate-rise"
+        onMouseDown={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between gap-3 border-b border-rule px-5 py-3">
+          <div>
+            <div className="label">This PC</div>
+            <div className="text-[15px] font-semibold">Browse for a dataset</div>
+          </div>
+          <button className="btn btn-sm" onClick={onClose} aria-label="Close">✕</button>
+        </div>
+        <div className="space-y-2.5 px-5 py-3">
+          <form
+            className="flex gap-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              open(typed);
+            }}
           >
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="font-semibold text-[14px] truncate">{d.id}</span>
-              <span className={sel ? 'chip bg-white/15 text-white' : 'chip'}>LeRobot {d.codebase_version}</span>
-              {!d.complete && <span className="chip-err">incomplete</span>}
-              <span className={clsx('ml-auto text-[11.5px] num', sel ? 'text-white/60' : 'text-ink-3')}>
-                {formatBytes(d.size_bytes)}
-              </span>
-            </div>
-            <div className={clsx('mt-2 grid grid-cols-2 md:grid-cols-5 gap-3 text-[12px]', sel ? 'text-white/80' : 'text-ink-2')}>
-              <div>
-                <div className={clsx('label', sel && '!text-white/50')}>Episodes</div>
-                <div className="text-[20px] font-light">{d.total_episodes}</div>
+            <button type="button" className="btn btn-sm" disabled={!view?.parent || busy} onClick={() => open(view.parent)} title="Up one folder">
+              ↑
+            </button>
+            <input className="input num flex-1" value={typed} onChange={(e) => setTyped(e.target.value)} aria-label="Folder path" spellCheck={false} />
+            <button className="btn btn-sm" type="submit" disabled={busy}>Go</button>
+          </form>
+          <div className="flex flex-wrap items-center gap-1.5">
+            {shortcuts.map((sc) => (
+              <button key={sc.path} type="button" className="chip hover:bg-sky-100 hover:text-sky-ink transition-colors num" onClick={() => open(sc.path)} title={sc.path}>
+                {sc.label}
+              </button>
+            ))}
+            <label className="ml-auto flex items-center gap-1.5 text-[11.5px] text-ink-3">
+              <input type="checkbox" checked={hidden} onChange={(e) => setHidden(e.target.checked)} /> hidden folders
+            </label>
+          </div>
+          <div className="h-[320px] overflow-y-auto scroll-thin rounded-xl border border-rule" aria-busy={busy}>
+            {!view && <div className="p-4"><Spinner /></div>}
+            {view && !entries.length && <div className="p-4 text-[12.5px] text-ink-3">No sub-folders here.</div>}
+            {entries.map((e) => (
+              <div key={e.path} className="group flex items-center gap-2.5 border-b border-rule/70 px-3 py-1.5 last:border-0 hover:bg-sky-50" data-browse-entry={e.name}>
+                <button type="button" className="flex min-w-0 flex-1 items-center gap-2.5 text-left" onClick={() => open(e.path)}>
+                  <span className={clsx('grid h-6 w-6 shrink-0 place-items-center rounded-md text-[12px]', e.dataset ? 'bg-sky-ink text-white' : 'bg-paper text-ink-3')} aria-hidden>
+                    {e.dataset ? '◆' : '▸'}
+                  </span>
+                  <span className={clsx('truncate text-[12.5px]', e.hidden && 'text-ink-3')}>{e.name}</span>
+                  {e.dataset && <span className="chip bg-sky-100 text-sky-ink shrink-0">LeRobot dataset</span>}
+                </button>
+                {e.dataset && (
+                  <button type="button" className="btn-sky btn-sm shrink-0" disabled={busy} onClick={() => use(e.path)} data-action="use-dataset">
+                    Use
+                  </button>
+                )}
               </div>
-              <div>
-                <div className={clsx('label', sel && '!text-white/50')}>Accepted</div>
-                <div className="text-[20px] font-light">{rc.accepted ?? 0}</div>
+            ))}
+          </div>
+          <p className="text-[11.5px] text-ink-3">
+            Pick a dataset folder (it contains <span className="num">meta/info.json</span>) or a folder of{' '}
+            <span className="num">owner/dataset</span> folders. Nothing is copied or changed; the folder is remembered as a dataset location.
+          </p>
+        </div>
+        <div className="flex items-center justify-between gap-3 border-t border-rule bg-paper/50 px-5 py-3">
+          <span className="num truncate text-[11.5px] text-ink-3" title={path}>{path}</span>
+          <div className="flex shrink-0 gap-2">
+            <button className="btn" onClick={onClose}>Cancel</button>
+            <button className="btn-sky" disabled={busy || !view} onClick={() => use(path)} data-action="use-folder">
+              {view?.dataset ? 'Use this dataset' : 'Use this folder'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DatasetStep({ datasets, roots, value, onPick, env, get, post, onAdded }) {
+  const [query, setQuery] = useState('');
+  const [browsing, setBrowsing] = useState(false);
+  const shown = useMemo(() => {
+    const words = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    return (datasets || []).filter((d) => {
+      const t = dsText(d);
+      return words.every((w) => t.includes(w));
+    });
+  }, [datasets, query]);
+  if (!datasets) return <Spinner />;
+  return (
+    <div className="grid gap-2.5">
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative min-w-[220px] flex-1">
+          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-ink-4" aria-hidden>⌕</span>
+          <input
+            className="input pl-8"
+            type="search"
+            placeholder="Search datasets: name, robot, task, camera, version, folder…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            aria-label="Search datasets"
+            data-field="dataset-search"
+          />
+        </div>
+        <span className="num text-[11.5px] text-ink-3" data-dataset-count>
+          {query ? `${shown.length} of ${datasets.length}` : `${datasets.length} dataset${datasets.length === 1 ? '' : 's'}`}
+        </span>
+        <button className="btn btn-sm" onClick={() => setBrowsing(true)} data-action="browse-datasets" title="Pick a dataset from a folder on this PC">
+          Browse files…
+        </button>
+      </div>
+      {!datasets.length && (
+        <Empty title="No datasets found">
+          Looked in {roots.join(', ')}. Record episodes in the Record session first, or use Browse files… to pick a dataset from another folder.
+        </Empty>
+      )}
+      {!!datasets.length && !shown.length && (
+        <div className="rounded-xl border border-dashed border-rule px-4 py-6 text-center text-[12.5px] text-ink-3">
+          No dataset matches “{query}”.
+        </div>
+      )}
+      <div className="grid gap-1.5 xl:grid-cols-2">
+        {shown.map((d) => {
+          const sel = value === d.path;
+          const rc = d.review_counts || {};
+          const cams = (d.cameras || []).map((c) => c.split('.').pop()).join(', ');
+          return (
+            <button
+              key={d.path}
+              data-dataset={d.id}
+              onClick={() => onPick(d.path)}
+              title={d.path}
+              className={clsx(
+                'group min-w-0 text-left rounded-xl border px-3.5 py-2.5 transition-all',
+                sel ? 'bg-ink text-white border-ink shadow-lift' : 'bg-white border-rule hover:border-sky-ink/40 hover:shadow-card'
+              )}
+            >
+              <div className="flex min-w-0 items-center gap-2">
+                <span className="truncate text-[13px] font-semibold">{d.id}</span>
+                <span className={clsx('chip shrink-0', sel ? 'bg-white/15 text-white' : 'bg-sky-50 text-sky-ink')}>LeRobot {d.codebase_version}</span>
+                {!d.complete && <span className="chip-err shrink-0">incomplete</span>}
+                <span className={clsx('ml-auto shrink-0 num text-[11px]', sel ? 'text-white/60' : 'text-ink-3')}>{formatBytes(d.size_bytes)}</span>
               </div>
-              <div>
-                <div className={clsx('label', sel && '!text-white/50')}>Rejected</div>
-                <div className="text-[20px] font-light">{rc.rejected ?? 0}</div>
+              <div className={clsx('mt-1 flex flex-wrap items-baseline gap-x-3.5 gap-y-0.5 text-[11.5px]', sel ? 'text-white/80' : 'text-ink-2')}>
+                <span><b className="font-semibold num">{d.total_episodes}</b> ep</span>
+                <span><b className="font-semibold num">{rc.accepted ?? 0}</b> accepted</span>
+                <span><b className="font-semibold num">{rc.rejected ?? 0}</b> rejected</span>
+                <span className="truncate">{d.robot_type || '—'}</span>
+                <span className={clsx('num', sel ? 'text-white/55' : 'text-ink-3')}>{d.fps} fps · {d.total_frames} frames</span>
+                {cams && <span className="truncate">{cams}</span>}
               </div>
-              <div>
-                <div className={clsx('label', sel && '!text-white/50')}>Robot</div>
-                <div className="truncate">{d.robot_type || '—'}</div>
-                <div className={clsx('num text-[11px]', sel ? 'text-white/50' : 'text-ink-3')}>
-                  {d.fps} fps · {d.total_frames} frames
-                </div>
+              <div className={clsx('mt-0.5 truncate text-[11px]', sel ? 'text-white/50' : 'text-ink-4')}>
+                {d.tasks?.[0] ? <span className="italic">“{d.tasks[0]}” · </span> : null}
+                <span className="num">{d.path}</span>
               </div>
-              <div className="min-w-0">
-                <div className={clsx('label', sel && '!text-white/50')}>Cameras</div>
-                <div className="truncate">{(d.cameras || []).map((c) => c.split('.').pop()).join(', ') || '—'}</div>
-              </div>
-            </div>
-            {d.tasks?.[0] && (
-              <div className={clsx('mt-2 text-[12px] italic truncate', sel ? 'text-white/70' : 'text-ink-3')}>“{d.tasks[0]}”</div>
-            )}
-            <div className={clsx('mt-1 num text-[11px] truncate', sel ? 'text-white/40' : 'text-ink-4')}>{d.path}</div>
-          </button>
-        );
-      })}
+            </button>
+          );
+        })}
+      </div>
       {value && (
-        <div className="sheet px-5 py-4 mt-2">
+        <div className="sheet px-5 py-4 mt-1">
           <HealthReport path={value} env={env} />
         </div>
+      )}
+      {browsing && (
+        <DatasetBrowser get={get} post={post} roots={roots} onClose={() => setBrowsing(false)} onAdded={onAdded} />
       )}
     </div>
   );
@@ -1110,7 +1271,21 @@ export default function LocalTrainingPage() {
   );
 
   const body = {
-    dataset: <DatasetStep datasets={datasets} roots={roots} value={dsPath} onPick={(p) => setDsPath(p)} env={envName} />,
+    dataset: (
+      <DatasetStep
+        datasets={datasets}
+        roots={roots}
+        value={dsPath}
+        onPick={(p) => setDsPath(p)}
+        env={envName}
+        get={get}
+        post={post}
+        onAdded={async (picked) => {
+          await loadBase();
+          if (picked) setDsPath(picked);
+        }}
+      />
+    ),
     env: (
       <EnvStep
         system={system}

@@ -50,6 +50,12 @@ class Service:
         self.data_dir = Path(data_dir)
         self.data_dir.mkdir(parents=True, exist_ok=True)
         self.dataset_roots = [Path(os.path.expanduser(str(r))) for r in dataset_roots]
+        # dataset folders the operator added from the Training page (persisted)
+        self._roots_file = self.data_dir / 'dataset_roots.json'
+        for extra in (read_json(self._roots_file) or {}).get('roots', []):
+            pe = Path(extra)
+            if pe.is_dir() and pe.resolve() not in [r.resolve() for r in self.dataset_roots]:
+                self.dataset_roots.append(pe)
         self.review_store = review_store
         self.envs = Environments(extra_envs)
         self.intro = Introspector(self.envs, self.data_dir / 'cli-cache')
@@ -161,6 +167,58 @@ class Service:
 
     def datasets(self):
         return dsets.scan(self.dataset_roots, self.review_store)
+
+    # ---- browsing for datasets on this PC (read-only: folder names only)
+    @staticmethod
+    def _is_dataset(p):
+        return (p / 'meta' / 'info.json').is_file()
+
+    def browse(self, path=None):
+        """List the sub-folders of `path` (default: the home folder), marking LeRobot datasets."""
+        base = Path(os.path.expanduser(path or '~')).resolve()
+        if not base.is_dir():
+            raise ApiError('%s is not a folder on this PC.' % base, 404)
+        entries = []
+        try:
+            children = sorted(base.iterdir(), key=lambda c: (c.name.startswith('.'), c.name.lower()))
+        except OSError as e:
+            raise ApiError('Cannot read %s: %s' % (base, e.strerror or e), 403)
+        for c in children:
+            try:
+                if not c.is_dir():
+                    continue
+                entries.append({'name': c.name, 'path': str(c), 'hidden': c.name.startswith('.'),
+                                'dataset': self._is_dataset(c)})
+            except OSError:
+                continue
+            if len(entries) >= 500:
+                break
+        known = [str(r.resolve()) for r in self.dataset_roots]
+        return {'path': str(base), 'parent': str(base.parent) if base.parent != base else None,
+                'home': str(Path.home()), 'dataset': self._is_dataset(base),
+                'is_root': str(base) in known, 'entries': entries}
+
+    def add_dataset_root(self, path):
+        """Make a dataset (or a folder of <owner>/<dataset> folders) available for training.
+
+        A dataset folder adds its grandparent, because datasets are found as
+        <folder>/<owner>/<name>. Existing folders are kept; nothing is copied or changed."""
+        p = Path(os.path.expanduser(str(path or ''))).resolve()
+        if not p.is_dir():
+            raise ApiError('%s is not a folder on this PC.' % p, 404)
+        root, picked = (p.parent.parent, p) if self._is_dataset(p) else (p, None)
+        if picked is None and not any(self._is_dataset(d) for o in root.iterdir() if o.is_dir()
+                                      for d in o.iterdir() if d.is_dir()):
+            raise ApiError('No LeRobot dataset found in %s. Pick a dataset folder (it contains '
+                           'meta/info.json) or a folder of <owner>/<dataset> folders.' % p, 400)
+        if root not in [r.resolve() for r in self.dataset_roots]:
+            self.dataset_roots.append(root)
+            saved = (read_json(self._roots_file) or {}).get('roots', [])
+            if str(root) not in saved:
+                saved.append(str(root))
+            atomic_write_json(self._roots_file, {'roots': saved})
+        return {'root': str(root), 'dataset': str(picked) if picked else None,
+                'roots': [str(r) for r in self.dataset_roots]}
 
     def dataset(self, path):
         path = Path(path).resolve()

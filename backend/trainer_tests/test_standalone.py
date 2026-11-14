@@ -215,3 +215,34 @@ def test_robot_server_folders_are_packages():
                and not (d / '__init__.py').exists()]
     assert not missing, missing
     assert '--symlink-install' in (PHYSIOS / 'docker' / 'robot' / 'Dockerfile').read_text()
+
+
+def test_browse_and_add_dataset_location(tmp_path):
+    """Training page: browse folders on this PC and add a dataset that lives elsewhere."""
+    from physios_trainer.service import ApiError
+    s = make(tmp_path)
+    other = tmp_path / 'elsewhere' / 'lerobot'
+    ds = other / 'me' / 'cube'
+    (ds / 'meta').mkdir(parents=True)
+    (ds / 'meta' / 'info.json').write_text(json.dumps({'codebase_version': 'v2.1', 'total_episodes': 3,
+                                                       'fps': 30, 'features': {}}))
+    (tmp_path / 'elsewhere' / 'notes').mkdir()
+    listing = s.browse(str(tmp_path / 'elsewhere'))
+    names = {e['name']: e for e in listing['entries']}
+    assert set(names) == {'lerobot', 'notes'} and not names['lerobot']['dataset']
+    assert s.browse(str(other / 'me'))['entries'][0]['dataset'] is True
+    assert s.browse(str(ds))['dataset'] is True
+    # picking the dataset folder adds its <folder>/<owner>/<name> root, persisted
+    r = s.add_dataset_root(str(ds))
+    assert r['root'] == str(other.resolve()) and r['dataset'] == str(ds.resolve())
+    assert any(d['path'] == str(ds.resolve()) or d['id'] == 'me/cube' for d in s.datasets())
+    assert s.dataset(str(ds))['id'] == 'me/cube'
+    assert make(tmp_path).dataset(str(ds))['id'] == 'me/cube'       # survives a restart
+    s.add_dataset_root(str(other))                                   # adding again: no duplicate
+    assert [str(x.resolve()) for x in s.dataset_roots].count(str(other.resolve())) == 1
+    for bad in (tmp_path / 'elsewhere' / 'notes', tmp_path / 'missing'):
+        try:
+            s.add_dataset_root(str(bad))
+            assert False, bad
+        except ApiError:
+            pass

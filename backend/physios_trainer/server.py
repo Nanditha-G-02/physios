@@ -199,6 +199,10 @@ def make_handler(svc):
                 return svc.environment(p[1], refresh=q.get('refresh') == '1')
             if m == 'GET' and p == ['datasets']:
                 return {'datasets': svc.datasets(), 'roots': [str(r) for r in svc.dataset_roots]}
+            if m == 'GET' and p == ['browse']:
+                return svc.browse(q.get('path'))
+            if m == 'POST' and p == ['dataset-roots']:
+                return svc.add_dataset_root(b.get('path'))
             if m == 'GET' and p == ['models']:
                 return svc.models(q.get('env', ''), q.get('dataset'))
             if m == 'GET' and p == ['policy-flags']:
