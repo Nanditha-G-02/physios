@@ -23,6 +23,7 @@ import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
 import { ColladaLoader } from 'three/examples/jsm/loaders/ColladaLoader.js';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
 import clsx from 'clsx';
+import { useTheme } from '../../components/ThemeToggle';
 import { TRAINER_BASE } from '../../hooks/useTrainer';
 
 const nums = (s, n, d = 0) => {
@@ -238,6 +239,7 @@ export default function UrdfViewer({ robotId, urdfText, meshMap, tree, className
   const [vals, setVals] = useState({});
   const [dims, setDims] = useState(null);
   const [showFrames, setShowFrames] = useState(false);
+  const dark = useTheme() === 'dark';
 
   const parsed = useMemo(() => {
     try {
@@ -251,7 +253,7 @@ export default function UrdfViewer({ robotId, urdfText, meshMap, tree, className
     if (!mountRef.current || parsed.error) return undefined;
     const el = mountRef.current;
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xf4f5f2);
+    scene.background = new THREE.Color(dark ? 0x0f1218 : 0xf4f5f2);
     const camera = new THREE.PerspectiveCamera(45, 1, 0.005, 100);
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -364,7 +366,7 @@ export default function UrdfViewer({ robotId, urdfText, meshMap, tree, className
       if (renderer.domElement.parentNode === el) el.removeChild(renderer.domElement);
       stateRef.current = {};
     };
-  }, [parsed, meshMap, robotId]);
+  }, [parsed, meshMap, robotId, dark]);
 
   // highlight the selected link
   useEffect(() => {

@@ -69,7 +69,7 @@ robot PC.
 
 ## 5. Screenshots
 
-`documentation/screenshots/` holds the screenshots of 1.2.0 (1600 × 900, against the
-devstack). The interface of 2.0.0 is the same. The only changes are the instruction texts
-that named the old folders (training service start command, robot config location, robot
-image rebuild).
+`documentation/screenshots/` (light mode) and `documentation/screenshots/dark/` (dark mode)
+hold every page, tab and view of 2.0.0 at 1600 × 900, taken against the devstack on 14
+November 2026. `documentation/media/` holds the README banner and a screen recording of the
+workflow (`rawbot-studio-demo.mp4`, with a GIF preview).

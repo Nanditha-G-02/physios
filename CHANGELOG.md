@@ -2,6 +2,13 @@
 
 ## 2.0.0, renamed (2026-11-13)
 
+* **README and project visuals.** The README has a light/dark banner, a screen recording of
+  the workflow (`documentation/media/`), a screenshot gallery that follows the reader's GitHub
+  theme, key features, technology stack, workflow and architecture diagrams (Mermaid), and
+  instructions to try the interface without a robot. All screenshots were retaken for 2.0.0,
+  in light and dark mode.
+* **Dark mode: 3D views.** The Record simulation view and the URDF viewer use a dark
+  background with light lines in dark mode.
 * **Light and dark mode.** A Light/Dark switch in the sidebar (above Link/Robot) changes the
   whole application. The choice is remembered in this browser and applied before the page
   appears, so a reload in dark mode does not flash light; switching fades smoothly.

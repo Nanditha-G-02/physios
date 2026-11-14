@@ -22,6 +22,7 @@
 // depend on the calibration). Other robots get a live joint-value panel.
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useTheme } from '../../components/ThemeToggle';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import ROSLIB from 'roslib';
@@ -31,8 +32,11 @@ import rosConnectionManager from '../../utils/rosConnectionManager';
 import { usePlanningService } from '../../hooks/usePlanningService';
 import { Segmented } from '../../components/ui';
 
-const INK = 0x121414;
-const RULE = 0xcdd0cb;
+// line-drawing palette: light theme as before; dark theme (light lines on charcoal), chosen
+// when the scene is built
+const PAL_LIGHT = { ink: 0x121414, rule: 0xcdd0cb, fill: 0xffffff, bg: 0xffffff };
+const PAL_DARK = { ink: 0xe9ecf1, rule: 0x2c323d, fill: 0x161a22, bg: 0x0f1218 };
+let PAL = PAL_LIGHT;
 const SKY = 0xccdaff;
 
 const SO101_JOINTS = [
@@ -65,13 +69,13 @@ function loadCal(robotType) {
   }
 }
 
-function edgeBox(w, d, h, fill = 0xffffff, opacity = 1) {
+function edgeBox(w, d, h, fill = PAL.fill, opacity = 1) {
   const g = new THREE.BoxGeometry(w, d, h);
   const mesh = new THREE.Mesh(
     g,
     new THREE.MeshBasicMaterial({ color: fill, transparent: opacity < 1, opacity, polygonOffset: true, polygonOffsetFactor: 1 })
   );
-  const edges = new THREE.LineSegments(new THREE.EdgesGeometry(g), new THREE.LineBasicMaterial({ color: INK }));
+  const edges = new THREE.LineSegments(new THREE.EdgesGeometry(g), new THREE.LineBasicMaterial({ color: PAL.ink }));
   mesh.add(edges);
   return mesh;
 }
@@ -166,6 +170,7 @@ export default function SimulationView({ episode, plan, active = true, compact }
   }, [active]);
 
   const isSo101 = profileKey === 'so101';
+  const dark = useTheme() === 'dark';
 
   // three.js scene (SO-101 only)
   useEffect(() => {
@@ -173,7 +178,8 @@ export default function SimulationView({ episode, plan, active = true, compact }
     const el = mountRef.current;
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.setClearColor(0xffffff);
+    PAL = dark ? PAL_DARK : PAL_LIGHT;
+    renderer.setClearColor(PAL.bg);
     el.appendChild(renderer.domElement);
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(35, 1, 0.01, 10);
@@ -184,7 +190,7 @@ export default function SimulationView({ episode, plan, active = true, compact }
     controls.enableDamping = true;
 
     // table grid (10 cm) in the table frame: x forward, y left, z up
-    const grid = new THREE.GridHelper(0.8, 16, RULE, RULE);
+    const grid = new THREE.GridHelper(0.8, 16, PAL.rule, PAL.rule);
     grid.rotation.x = Math.PI / 2;
     grid.position.set(0.2, 0, 0);
     scene.add(grid);
@@ -314,7 +320,7 @@ export default function SimulationView({ episode, plan, active = true, compact }
       if (renderer.domElement.parentNode) renderer.domElement.parentNode.removeChild(renderer.domElement);
       sceneRef.current = null;
     };
-  }, [active, isSo101]);
+  }, [active, isSo101, dark]);
 
   // planned workspace / items overlay
   useEffect(() => {
@@ -347,11 +353,11 @@ export default function SimulationView({ episode, plan, active = true, compact }
       if (dashed) line.computeLineDistances();
       return line;
     };
-    g.add(rectLine(ws, INK, false));
+    g.add(rectLine(ws, PAL.ink, false));
     const reach = new THREE.EllipseCurve(0, 0, mm(ws.reach_max_mm), mm(ws.reach_max_mm), -Math.PI / 2, Math.PI / 2);
     const reachLine = new THREE.Line(
       new THREE.BufferGeometry().setFromPoints(reach.getPoints(64).map((p) => new THREE.Vector3(p.x, p.y, 0.001))),
-      new THREE.LineDashedMaterial({ color: INK, dashSize: 0.012, gapSize: 0.008 })
+      new THREE.LineDashedMaterial({ color: PAL.ink, dashSize: 0.012, gapSize: 0.008 })
     );
     reachLine.computeLineDistances();
     g.add(reachLine);
@@ -369,7 +375,7 @@ export default function SimulationView({ episode, plan, active = true, compact }
         g.add(box);
       });
     }
-  }, [plan, episode, isSo101, active]);
+  }, [plan, episode, isSo101, active, dark]);
 
   const age = live.age;
   const state = age === null ? 'none' : age > 1000 ? 'stale' : 'live';
