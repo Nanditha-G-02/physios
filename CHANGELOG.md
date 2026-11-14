@@ -2,6 +2,19 @@
 
 ## 2.0.0, renamed (2026-11-13)
 
+* **Data → Episodes: compact Observation.** The Global and Gripper camera feeds sit side by
+  side at a fixed height (150–250 px depending on the window, 16:9 frame, video letterboxed,
+  aspect ratio kept), so the playback bar and the joint graphs are visible below them
+  without scrolling. The joint graph is drawn at its real width, so labels stay the same
+  size on wide screens. Playback, processed view, phases and review are unchanged.
+* **Training: Browse dialog fixed.** The folder browser opens centred over the whole page
+  (it was offset by the page animation and its header could be cut off) and fits small
+  windows. Adding a folder skips sub-folders that cannot be read instead of failing.
+* **Home keeps its black-and-white look.** Heading, canvas and the robot panel are back to
+  the black-and-white design (grey "Studio", black buttons, neutral glass). Only the
+  animated robot is in colour: silver and white links, black base and joints, blue joint
+  rings, red cube. `HeroArm.js` is unchanged. The rest of the application stays black,
+  white and blue.
 * **Training page: compact dataset list, search and browsing.**
   * Dataset cards are compact, in two columns on wide screens: name, LeRobot version, size,
     episodes, accepted/rejected, robot, fps and frames, cameras, task and folder, as before.
@@ -23,9 +36,7 @@
   command panel: navy-black panels, white text, blue accents.
   * Theme: one blue scale (brand blue `#2457E6`). The blue, indigo, violet, purple, cyan
     and teal palettes all use it, so no other accent hue appears.
-  * Home: "Studio" in a blue gradient, a neutral canvas with soft blue light; in the robot
-    panel, a black Confirm button, a blue Continue button, a blue selected state and badge,
-    and a white-and-blue confirmed pill.
+  * Home: superseded, see "Home keeps its black-and-white look" above.
   * Charts use brand blue, black, light blue and greys; the workspace and Simulation views
     are blue instead of teal; the decorative pink and peach tints are gone.
   * Unchanged:

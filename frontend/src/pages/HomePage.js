@@ -15,6 +15,8 @@
 // Author: Kiwoong Park
 // 2026: landing page - the RawBot Studio hero (animated arm) and robot selection with live
 // connection status. The workflow pages are reached through the sidebar.
+// Home keeps its own black-and-white look (heading, canvas, robot panel) inside the app's
+// black, white and blue theme; the animated arm (HeroArm) keeps its own colours.
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
@@ -209,19 +211,19 @@ export default function HomePage() {
       hint: robotType ? familyOf(robotType).name : 'select below',
     },
   ];
-  const dot = { ok: 'bg-signal-ok', warn: 'bg-signal-warn', err: 'bg-signal-err', sky: 'bg-sky-ink', idle: 'bg-ink-4' };
+  const dot = { ok: 'bg-signal-ok', warn: 'bg-signal-warn', err: 'bg-signal-err', sky: 'bg-ink', idle: 'bg-ink-4' };
 
   return (
     <div className="relative h-full w-full overflow-hidden">
-      {/* light canvas with soft blue ambient light (black, white and blue theme) */}
+      {/* light canvas with soft grey ambient light */}
       <div
         className="absolute inset-0 pointer-events-none"
         aria-hidden
         style={{
           background:
-            'radial-gradient(48% 55% at 82% 14%, rgba(36,87,230,0.12), rgba(36,87,230,0) 70%),' +
-            'radial-gradient(42% 50% at 10% 96%, rgba(11,12,14,0.04), rgba(11,12,14,0) 70%),' +
-            'radial-gradient(35% 40% at 40% 60%, rgba(36,87,230,0.04), rgba(36,87,230,0) 70%),' +
+            'radial-gradient(48% 55% at 82% 14%, rgba(255,255,255,0.95), rgba(255,255,255,0) 70%),' +
+            'radial-gradient(42% 50% at 10% 96%, rgba(11,12,14,0.05), rgba(11,12,14,0) 70%),' +
+            'radial-gradient(35% 40% at 40% 60%, rgba(11,12,14,0.025), rgba(11,12,14,0) 70%),' +
             'linear-gradient(180deg, #F8F9FB 0%, #F3F4F7 100%)',
         }}
       />
@@ -234,13 +236,13 @@ export default function HomePage() {
               RawBot{' '}
               <span
                 className="font-normal bg-clip-text text-transparent"
-                style={{ backgroundImage: 'linear-gradient(100deg, #1D47C2 0%, #2457E6 45%, #4F7BFF 100%)' }}
+                style={{ backgroundImage: 'linear-gradient(100deg, #0B0C0E 0%, #4A4E57 55%, #9B9FA7 100%)' }}
               >
                 Studio
               </span>
             </h1>
             <p className="mt-5 flex items-center gap-3 text-[15px] md:text-[18px] font-light tracking-[-0.01em] text-ink-2">
-              <span className="h-px w-10 shrink-0 bg-gradient-to-r from-sky-ink to-transparent" aria-hidden />
+              <span className="h-px w-10 shrink-0 bg-gradient-to-r from-ink to-transparent" aria-hidden />
               The Operating System for Physical Intelligence.
             </p>
             <div className="relative mt-4 -ml-2 w-full max-w-[860px]">

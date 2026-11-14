@@ -44,6 +44,7 @@ import {
   formatBytes,
   formatDuration,
 } from '../components/ui';
+import { createPortal } from 'react-dom';
 
 const STEPS = [
   ['dataset', 'Dataset'],
@@ -168,14 +169,15 @@ function DatasetBrowser({ get, post, roots, onClose, onAdded }) {
     ...roots.map((r) => ({ label: r.replace(view?.home || '~', '~'), path: r })),
     { label: 'Home', path: view?.home || '~' },
   ];
-  return (
+  // portal: an animated (transformed) ancestor would otherwise offset the fixed overlay
+  return createPortal(
     <div className="fixed inset-0 z-50 grid place-items-center bg-ink/30 backdrop-blur-[2px] p-4" onMouseDown={onClose}>
       <div
         role="dialog"
         aria-modal="true"
         aria-label="Browse for a dataset"
         data-dialog="dataset-browser"
-        className="w-full max-w-[680px] rounded-2xl bg-white shadow-lift overflow-hidden animate-rise"
+        className="flex w-full max-w-[680px] max-h-[calc(100vh-2rem)] flex-col rounded-2xl bg-white shadow-lift overflow-hidden animate-rise"
         onMouseDown={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between gap-3 border-b border-rule px-5 py-3">
@@ -244,7 +246,9 @@ function DatasetBrowser({ get, post, roots, onClose, onAdded }) {
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
+
   );
 }
 

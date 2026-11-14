@@ -15,10 +15,11 @@
 // Small-multiple timelines of observation.state (solid ink) and action
 // (dashed blue) per joint, with a playhead synced to the episode video.
 
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 
-const W = 640;
-const ROW = 46;
+// The chart is drawn at its real width in CSS pixels (measured), so the joint labels and
+// row heights stay the same size on any screen while the curves use the full width.
+const ROW = 42;
 const LEFT = 118;
 const RIGHT = 8;
 
@@ -28,6 +29,18 @@ export default function TimelineChart({ data, time = 0, onSeek, markers = [] }) 
   const t0 = timestamp[0] || 0;
   const t1 = timestamp[timestamp.length - 1] || 1;
   const H = joints * ROW + 26;
+  const box = useRef(null);
+  const [W, setW] = useState(640);
+  useEffect(() => {
+    const el = box.current;
+    if (!el || typeof ResizeObserver === 'undefined') return undefined;
+    const ro = new ResizeObserver(([e]) => {
+      const w = Math.round(e.contentRect.width);
+      if (w > 200) setW(w);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   const series = useMemo(() => {
     const out = [];
@@ -55,17 +68,24 @@ export default function TimelineChart({ data, time = 0, onSeek, markers = [] }) 
       out.push({ s: path(state), a: path(action), lo, hi });
     }
     return out;
-  }, [state, action, timestamp, joints, t0, t1]);
+  }, [state, action, timestamp, joints, t0, t1, W]);
 
   if (!joints || !timestamp.length) {
-    return <div className="text-[12.5px] text-ink-3 p-4">No state/action data in this episode.</div>;
+    return (
+      <div ref={box} className="text-[12.5px] text-ink-3 p-4">
+        No state/action data in this episode.
+      </div>
+    );
   }
   const px = LEFT + ((time - t0) / (t1 - t0 || 1)) * (W - LEFT - RIGHT);
 
   return (
-    <svg
+    <div ref={box} className="w-full">
+      <svg
       viewBox={`0 0 ${W} ${H}`}
-      className="w-full h-auto select-none"
+      width={W}
+      height={H}
+      className="block w-full h-auto select-none"
       role="img"
       aria-label="State and action timelines"
       onClick={(e) => {
@@ -120,6 +140,7 @@ export default function TimelineChart({ data, time = 0, onSeek, markers = [] }) 
           action
         </text>
       </g>
-    </svg>
+      </svg>
+    </div>
   );
 }

@@ -157,6 +157,9 @@ Browser ─ RawBot Studio frontend ─┐
     2. data: object colours chosen in a plan and camera images.
   * The animated Home robot (`HeroArm.js`) keeps its own look and is not restyled by theme
     changes.
+  * Home keeps its own black-and-white look: grey "Studio" gradient, neutral canvas, a
+    neutral-glass robot panel with black buttons and selected state. Only the robot is in
+    colour (silver links, black joints and base, blue joint rings, red cube).
 * **Design.** Paper/ink/sky tokens, Geist Sans and Geist Mono (bundled), with the compact
   theme:
   * 14 px root, 14 px cards with hairline borders, a dot-grid canvas;

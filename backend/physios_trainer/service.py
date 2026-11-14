@@ -207,8 +207,13 @@ class Service:
         if not p.is_dir():
             raise ApiError('%s is not a folder on this PC.' % p, 404)
         root, picked = (p.parent.parent, p) if self._is_dataset(p) else (p, None)
-        if picked is None and not any(self._is_dataset(d) for o in root.iterdir() if o.is_dir()
-                                      for d in o.iterdir() if d.is_dir()):
+
+        def _subdirs(d):
+            try:
+                return [c for c in d.iterdir() if c.is_dir()]
+            except OSError:  # unreadable folder: skip it
+                return []
+        if picked is None and not any(self._is_dataset(d) for o in _subdirs(root) for d in _subdirs(o)):
             raise ApiError('No LeRobot dataset found in %s. Pick a dataset folder (it contains '
                            'meta/info.json) or a folder of <owner>/<dataset> folders.' % p, 400)
         if root not in [r.resolve() for r in self.dataset_roots]:

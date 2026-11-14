@@ -196,9 +196,10 @@ export default function EpisodeViewer({ datasetId, episodeIndex, call, onReviewe
         }
       >
         {!keys.length && <Callout tone="warn">This dataset has no video features.</Callout>}
-        <div className={clsx('grid gap-2', keys.length > 1 ? 'md:grid-cols-2' : '')}>
+        {/* compact feeds: side by side, 16:9 frame (video letterboxed), at most 26vh tall */}
+        <div className="flex gap-2">
           {keys.map((k, i) => (
-            <figure key={k} className="relative border border-ink bg-paper-2">
+            <figure key={k} className="relative min-w-0 flex-1 max-w-[clamp(267px,46vh,444px)] overflow-hidden rounded-lg border border-ink bg-black">
               <video
                 ref={(el) => {
                   videos.current[k] = el;
@@ -209,7 +210,10 @@ export default function EpisodeViewer({ datasetId, episodeIndex, call, onReviewe
                 muted
                 playsInline
                 preload="auto"
-                className={clsx('w-full aspect-video bg-black', processed && i === 0 && 'hidden')}
+                className={clsx(
+                  'block w-full aspect-video object-contain bg-black',
+                  processed && i === 0 && 'hidden'
+                )}
                 onLoadedMetadata={(e) => {
                   e.currentTarget.currentTime = offset(k);
                 }}
@@ -230,7 +234,7 @@ export default function EpisodeViewer({ datasetId, episodeIndex, call, onReviewe
                 onError={() => setVideoErrors((s) => ({ ...s, [k]: true }))}
               />
               {processed && i === 0 && masterEl && (
-                <div className="aspect-video">
+                <div className="w-full aspect-video">
                   <ProcessedCameraView
                     sourceEl={masterEl}
                     items={itemsForView}
